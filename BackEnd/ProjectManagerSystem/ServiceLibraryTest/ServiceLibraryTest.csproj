@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTest.cs" />
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTestDataAdd.cs" />
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTestDataExist.cs" />
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTestDataGet.cs" />
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTestDataRemove.cs" />
+		<Compile Remove="Core\Manager\DB\Info\CoMgrInfoDbServiceTestDataUpdate.cs" />
+		<Compile Remove="Core\Manager\DB\MenuPermission\CoMgrMenuPermissionDbServiceTest.cs" />
+		<Compile Remove="Core\Manager\DB\MenuPermission\CoMgrMenuPermissionDbServiceTestDataAddMany.cs" />
+		<Compile Remove="Core\Manager\DB\MenuPermission\CoMgrMenuPermissionDbServiceTestDataGet.cs" />
+		<Compile Remove="Core\Manager\DB\MenuPermission\CoMgrMenuPermissionDbServiceTestDataGetMany.cs" />
+		<Compile Remove="Core\Manager\DB\MenuPermission\CoMgrMenuPermissionDbServiceTestDataRemoveMany.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.4">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+		<!--<PackageReference Include="xunit" Version="2.9.3" />
+		<PackageReference Include="Xunit.DependencyInjection" Version="9.9.1" />-->
+		<PackageReference Include="xunit.v3" Version="3.2.0" />
+		<PackageReference Include="Xunit.DependencyInjection" Version="11.1.0" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ServiceLibrary\ServiceLibrary.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update=".runsettings">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="appsettings.Test.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Include="DbSQL\*.sql">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Core\Manager\DB\Info\" />
+	  <Folder Include="Core\Manager\DB\MenuPermission\" />
+	</ItemGroup>
+
+</Project>

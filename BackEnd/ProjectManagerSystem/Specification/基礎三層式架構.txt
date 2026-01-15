@@ -1,0 +1,12 @@
+網路文章：
+https://ithelp.ithome.com.tw/m/articles/10268951
+https://www.ibm.com/docs/zh-tw/was-zos/9.0.5?topic=overview-three-tier-architectures
+https://igouist.github.io/post/2021/10/newbie-5-3-layer-architecture/
+https://vocus.cc/article/64d0fc88fd89780001c587a2
+
+程式碼對應
+展示層：WebApi > Controller
+邏輯層：ServiceLibrary > ManagerBackSite > Logical
+資料層：ServiceLibrary > Core
+
+

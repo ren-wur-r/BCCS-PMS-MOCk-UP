@@ -1,0 +1,15 @@
+﻿
+////////////////////////////////// 更新DB流程 20220726
+1.建置:隨便一隻webapi
+2.套件管理切換:DataModelLibrary
+3.
+// dev-SQL Server
+Scaffold-DbContext -Connection "Server=192.168.3.236,1433;User ID=sa;Password=P@ssw0rd;Database=ProjectManagerMain;Persist Security Info=False;TrustServerCertificate=True" -Provider "Microsoft.EntityFrameworkCore.SqlServer" -OutputDir "EfCore/ProjectManagerMainTemp" -DataAnnotations -UseDatabaseNames -Force -NoOnConfiguring -NoPluralize
+// dev-dotnet cli-SQL Server
+dotnet ef dbcontext scaffold "Server=192.168.3.236,1433;User ID=sa;Password=P@ssw0rd;Database=ProjectManagerMain;Persist Security Info=False;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer --output-dir "EfCore/ProjectManagerMainTemp" --data-annotations --use-database-names --force --no-onconfiguring --no-pluralize --project BackEnd/ProjectManagerSystem/DataModelLibrary
+// local-SQL Server
+Scaffold-DbContext -Connection "Server=192.168.3.236,1433;User ID=sa;Password=P@ssw0rd;Database=ProjectManagerMain;Persist Security Info=False;TrustServerCertificate=True" -Provider "Microsoft.EntityFrameworkCore.SqlServer" -OutputDir "EfCore/ProjectManagerMainTemp" -DataAnnotations -UseDatabaseNames -Force -NoOnConfiguring -NoPluralize
+
+4.temp資料夾改回 (ex:AbcTemp  ----> Abc )
+5.class的namespace也要修正
+//////////////////////////////// 

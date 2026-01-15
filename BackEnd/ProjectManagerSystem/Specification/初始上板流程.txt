@@ -1,0 +1,31 @@
+設定環境參數
+ASPNETCORE_ENVIRONMENT=Production
+
+安裝應用程式
+1. 安裝 URL Rewrite，網址https://www.iis.net/downloads/microsoft/url-rewrite
+2. 安裝 .NET Hosting Bundle，版本：.NET 9，網址：https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-9.0.0-windows-hosting-bundle-installer
+
+DB：
+1. 預設版本 sql server 2019
+2. 依序執行以下 .sql
+(1) Init-ProjectManagerSystem-Schema-{年}-{月日}.sql
+(2) Init-ProjectManagerSystem-Data-{年}-{月日}.sql
+
+建立資料夾
+1. ProjectManagerSystem/ManagerBackSite，該資料夾是放前端的程式碼
+2. ProjectManagerSystem/ProjectManagerWebApi，該資料夾是放後端的程式碼
+
+程式碼：
+1. 將 ManagerBackSite 程式碼 放到 ProjectManagerSystem/ManagerBackSite
+2. 將 ProjectManagerWebApi 程式碼 放到 ProjectManagerSystem/ProjectManagerWebApi
+
+IIS：
+1. 新增站台 ProjectManagerSystem
+- 路徑：ProjectManagerSystem
+2. 在 站台 ProjectManagerSystem 底下，新增應用程式 ManagerBackSite
+- 別名：ManagerBackSite
+- 路徑：ProjectManagerSystem/ManagerBackSite
+3. 在 站台 ProjectManagerSystem 底下，新增應用程式 ProjectManagerWebApi
+- 別名：ProjectManagerWebApi
+- 路徑：ProjectManagerSystem/ProjectManagerWebApi
+4. 關閉網站 > 關閉應用程式集區 > 開啟應用程式集區 > 開啟網站

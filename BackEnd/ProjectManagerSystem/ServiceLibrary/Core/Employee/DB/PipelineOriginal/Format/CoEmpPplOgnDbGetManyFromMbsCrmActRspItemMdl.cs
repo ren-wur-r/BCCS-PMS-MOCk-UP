@@ -1,0 +1,34 @@
+using DataModelLibrary.Database.AtomPipeline;
+
+namespace ServiceLibrary.Core.Employee.DB.PipelineOriginal.Format;
+
+/// <summary>核心-員工-商機原始資料-資料庫-取得多筆從[管理者後台-CRM-活動管理]-項目-回應模型</summary>
+public class CoEmpPplOgnDbGetManyFromMbsCrmActRspItemMdl
+{
+    /// <summary>商機ID</summary>
+    public int EmployeePipelineID { get; set; }
+
+    /// <summary>商機狀態</summary>
+    public DbAtomPipelineStatusEnum AtomPipelineStatus { get; set; }
+
+    /// <summary>商機原始資料-管理者公司名稱</summary>
+    public string EmployeePipelineOriginalManagerCompanyName { get; set; }
+
+    /// <summary>商機原始資料-窗口部門</summary>
+    public string EmployeePipelineOriginalManagerContacterDepartment { get; set; }
+
+    /// <summary>商機原始資料-窗口職稱</summary>
+    public string EmployeePipelineOriginalManagerContacterJobTitle { get; set; }
+
+    /// <summary>商機原始資料-窗口姓名</summary>
+    public string EmployeePipelineOriginalManagerContacterName { get; set; }
+
+    /// <summary>商機原始資料-窗口Email</summary>
+    public string EmployeePipelineOriginalManagerContacterEmail { get; set; }
+
+    /// <summary>商機原始資料-窗口手機</summary>
+    public string EmployeePipelineOriginalManagerContacterPhone { get; set; }
+
+    /// <summary>商機原始資料-窗口電話</summary>
+    public string EmployeePipelineOriginalManagerContacterTelephone { get; set; }
+}

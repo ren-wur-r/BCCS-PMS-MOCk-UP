@@ -1,0 +1,14 @@
+﻿<RunSettings>
+
+	<RunConfiguration>
+		<EnvironmentVariables>
+			<ASPNETCORE_ENVIRONMENT>Test</ASPNETCORE_ENVIRONMENT>
+		</EnvironmentVariables>
+	</RunConfiguration>
+
+	<xUnit>
+		<MaxParallelThreads>default</MaxParallelThreads>
+		<ParallelizeTestCollections>false</ParallelizeTestCollections>
+	</xUnit>
+
+</RunSettings>

@@ -1,0 +1,14 @@
+namespace ServiceLibrary.Core.Manager.DB.ContacterRating.Format;
+
+/// <summary>核心-管理者-窗口開發評等-資料庫-取得單筆-回應模型</summary>
+public class CoMgrCttRtgDbGetRspMdl
+{
+    /// <summary>管理者窗口ID</summary>
+    public int ManagerContacterID { get; set; }
+
+    /// <summary>管理者窗口開發評等原因ID</summary>
+    public int ManagerContacterRatingReasonID { get; set; }
+
+    /// <summary>管理者窗口開發評等-備註</summary>
+    public string ManagerContacterRatingRemark { get; set; }
+}

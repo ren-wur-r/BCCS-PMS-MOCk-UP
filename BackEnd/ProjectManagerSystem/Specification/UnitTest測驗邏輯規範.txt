@@ -1,0 +1,5 @@
+[UnitTest]
+1.驗要求參數跟回應參數
+2.驗儲存媒體的新增刪除修改
+3.驗此邏輯中,不影響回傳結果的其他method有無被呼叫
+  例如:MbsBasicLogicalService.LoginAsync 檢查 oper, 核心-管理者-操作紀錄-新增類型[操作]-項目[登入],有沒有被呼叫 

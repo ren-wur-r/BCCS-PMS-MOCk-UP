@@ -1,0 +1,94 @@
+[資料庫]
+Table1: {角色全名}
+Table2: {角色全名}{功能全名:功能盡量以一個英文單字為主，最多兩個英文單字}
+
+======================================================================
+[Core]
+
+Core
+- Atom: Atm
+- Manager: Mgr
+ - MenuPermission: Mp
+ - Info: Inf
+- Employee: Emp
+
+DB
+- Format1: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Db{行為}{Req/Rsp}Mdl
+- Format2: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Db{行為}{Req/Rsp}ItemMdl
+- Format3: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Db{行為}{Req/Rsp}Item{物件名}Mdl
+- Format4: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Db{行為}From{Api縮寫}{Controller父目錄縮寫:2~3碼}{Controller子目錄縮寫:2~3碼}{Req/Rsp}Mdl
+- Service: Co{角色縮寫:2~3碼}{功能全名}DbService
+
+Redis
+- Format: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Rds{行為}{Req/Rsp}Mdl
+- Service: Co{角色縮寫:2~3碼}{功能全名}RedisService
+
+Mongodb
+- Format: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Mdb{行為}{Req/Rsp}Mdl
+- Service: Co{角色縮寫:2~3碼}{功能全名}MongoService
+
+Memory
+- Format: Co{角色縮寫:2~3碼}{功能縮寫:2~3碼}Mem{行為}{Req/Rsp}Mdl
+- Service: Co{角色縮寫:2~3碼}{功能全名}MemoryService
+
+Logical
+- Format: Co{角色縮寫:2~3碼}Lgc{行為}{Req/Rsp}Mdl
+- Service: Co{角色全名}LogicalService
+
+======================================================================
+
+[Api]
+
+Controller
+- 父目錄全名/子目錄全名
+ - {Api縮寫:2~3碼}{Controller父目錄縮寫:2~3碼}{Controller子目錄縮寫:2~3碼}Ctl{行為}{Req/Rsp}Mdl
+
+Logical
+- 父目錄全名/子目錄全名
+ - Format1: {Api縮寫:2~3碼}{Controller父目錄縮寫:2~3碼}{Controller子目錄縮寫:2~3碼}Lgc{行為}{Req/Rsp}Mdl
+ - Service1: {Api縮寫:2~3碼}{Controller父目錄縮寫:2~3碼}{Controller子目錄全名}LogicalService
+ - Format2: {Api縮寫:2~3碼}{Controller父目錄縮寫:2~3碼}Lgc{行為}{Req/Rsp}Mdl
+ - Service2: {Api縮寫:2~3碼}{Controller父目錄全名}LogicalService
+
+Background
+- Service: {Api縮寫:2~3碼}{功能全名}BackgroundService
+
+Http
+
+
+======================================================================
+
+[ManagerBackSite]
+
+ManagerBackSite: Mbs (管理者後台)
+- ERP: Erp (企業資源規劃)(Enterprise Resource Planning)
+  - Bill: (發票)
+- Work: Wrk (工作)
+  - Project: Prj (專案)
+  - Task: Tsk (工項)
+- CRM: Crm (客戶關係管理)(Customer Relationship Management)
+  - Pipeline: Ppl (商機)
+  - Booking: Bkg (Booking)
+  - Phone: Phn (電銷)
+  - Activity: Act (活動)
+- RePort: Rpt (報表)
+  - ProductPeriod: Pp (產品同比)
+  - ProductTrend: Pt (產品趨勢)
+  - ProductAnalysis: Pa (產品分析)
+  - ContacterAnalysis: Cta (窗口分析)
+  - CompanyTrend: Ct (客戶趨勢)
+  - CompanyAnalysis: Ca (客戶分析)
+  - ActivityAnalysis: Aa (活動分析)
+- System: Sys (系統)
+  - Contacter: Ctr (窗口)
+  - Company: Cmp (客戶)
+  - Product: Prd (產品)
+  - Employee: Emp (員工)
+  - Role: Rol (角色)
+  - Department: Dpt (部門)
+  - Region: Rgn (地區)
+
+
+
+以下尚未編排目錄
+- Rolling3: R03 

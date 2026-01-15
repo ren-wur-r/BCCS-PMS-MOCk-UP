@@ -1,0 +1,11 @@
+namespace ServiceLibrary.Core.Manager.DB.CompanyMainKind.Format;
+
+/// <summary>核心-管理者-公司主分類-資料庫-取得多筆[名稱]-回應模型-項目</summary>
+public class CoMgrCmpMainKdDbGetManyNameRspItemMdl
+{
+    /// <summary>公司主分類-ID</summary>
+    public int ManagerCompanyMainKindID { get; set; }
+
+    /// <summary>公司主分類-名稱</summary>
+    public string ManagerCompanyMainKindName { get; set; }
+}

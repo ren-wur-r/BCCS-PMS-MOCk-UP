@@ -1,0 +1,408 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ========== Button ========== */
+@layer components {
+  /* Base */
+  .btn {
+    @apply inline-flex items-center justify-center
+           h-8 px-3 py-[6px] gap-1 
+           rounded border font-medium
+           select-none text-sm text-nowrap
+           transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-xs {
+    @apply btn min-w-[44px];
+  }
+  .btn-sm {
+    @apply btn min-w-[88px];
+  }
+  .btn-md {
+    @apply btn min-w-[100px];
+  }
+  .btn-lg {
+    @apply btn min-w-[120px];
+  }
+
+  /* Variants */
+  .btn-brand-100 {
+    @apply text-white bg-brand-100 hover:bg-brand-100/90;
+  }
+  .btn-brand-101 {
+    @apply text-black  bg-brand-101  hover:bg-brand-100/90;
+  }
+  .btn-brand-102 {
+    @apply text-black bg-brand-102 hover:bg-brand-102/90;
+  }
+  .btn-brand-200 {
+    @apply text-white bg-brand-200 hover:bg-brand-200/90;
+  }
+  .btn-brand-201 {
+    @apply text-white bg-brand-201 hover:bg-brand-201/90;
+  }
+  .btn-outline {
+    @apply text-gray-600 border-gray-300 bg-white hover:bg-gray-100;
+  }
+  .btn-ghost {
+    @apply text-gray-500 border-gray-300 bg-white hover:bg-brand-201 hover:text-white;
+  }
+  .btn-gray-0 {
+    @apply text-black border-gray-300 bg-gray-0 hover:bg-brand-200;
+  }
+  .btn-functional-error {
+    @apply text-white bg-functional-error hover:bg-functional-error/90;
+  }
+
+  /* Semantic（別名，不新增樣式，只組合） */
+  .btn-back {
+    @apply text-brand-200 font-semibold hover:text-brand-201;
+  }
+  .btn-add {
+    @apply btn btn-brand-100;
+  }
+  .btn-append {
+    @apply btn btn-brand-100;
+  }
+  .btn-detail {
+    @apply btn btn-brand-200;
+  }
+  .btn-update {
+    @apply btn btn-brand-201;
+  }
+  .btn-save {
+    @apply btn btn-brand-201;
+  }
+  .btn-cancel {
+    @apply btn btn-outline;
+  }
+  .btn-delete {
+    @apply btn btn-functional-error;
+  }
+  .btn-search {
+    @apply btn btn-brand-200;
+  }
+  .btn-clear {
+    @apply btn btn-outline;
+  }
+  .btn-submit {
+    @apply btn btn-brand-200;
+  }
+  .btn-confirm {
+    @apply btn btn-brand-200;
+  }
+  .btn-dismiss {
+    @apply btn btn-ghost;
+  }
+  .btn-close {
+    @apply btn btn-brand-200;
+  }
+  .btn-correct {
+    @apply text-red-500  underline px-2 py-1 hover:text-brand-200;
+  }
+
+  /* 活動類型選擇按鈕 */
+  .btn-activity-type {
+    @apply px-4 py-2 rounded border transition-colors duration-200
+           text-sm font-medium select-none cursor-pointer;
+  }
+
+  /* 活動類型按鈕 - 未選中狀態 */
+  .btn-activity-type-unselected {
+    @apply btn-activity-type text-nowrap
+           bg-white text-gray-400 border-gray-300
+           hover:bg-gray-50 hover:text-gray-600 hover:border-gray-400;
+  }
+
+  /* 活動類型按鈕 - 選中狀態 */
+  .btn-activity-type-selected {
+    @apply btn-activity-type text-nowrap
+           bg-black text-white border-black
+           hover:bg-gray-800 hover:border-gray-800;
+  }
+
+  /* 活動類型按鈕 - 禁用狀態 */
+  .btn-activity-type-disabled {
+    @apply btn-activity-type w-min text-nowrap
+           bg-gray-200 text-gray-400 border-gray-200
+           cursor-not-allowed;
+  }
+
+  /* 窗口標籤 */
+  .badge-contacter {
+    @apply px-3 py-2 rounded-lg border text-sm
+           text-nowrap select-none transition-colors duration-200;
+  }
+
+  /* 窗口標籤 - 主要窗口 */
+  .badge-contacter-primary {
+    @apply badge-contacter
+           bg-brand-100/80 text-white border-brand-100;
+  }
+
+  /* 窗口標籤 - 次要窗口 */
+  .badge-contacter-secondary {
+    @apply badge-contacter
+           bg-gray-200 text-gray-700 border-gray-300;
+  }
+}
+
+/* ========== Text ========== */
+@layer components {
+  /* 表頭標題 */
+  h1 {
+    @apply font-bold text-[24px] leading-[100%] tracking-normal text-brand-200;
+  }
+
+  /**彈跳視窗標題 */
+  .modal-title {
+    @apply font-semibold text-[18px] leading-[100%] tracking-normal text-brand-200;
+  }
+
+  /* 內容小標題 */
+  .subtitle {
+    @apply font-bold text-brand-100 text-[20px] leading-[100%] tracking-normal w-full;
+  }
+
+  /* 查詢欄位名稱 */
+  .query-label {
+    @apply font-normal text-[14px] leading-[100%] tracking-normal text-gray-500;
+  }
+
+  /* 表單欄位名稱 */
+  .form-label {
+    @apply font-normal text-[14px] leading-[100%] tracking-normal text-black;
+  }
+
+  /* 欄位必填提示 */
+  .required-label {
+    @apply text-functional-error font-normal text-[14px] leading-[100%] tracking-normal;
+  }
+
+  .error-wrapper {
+    @apply h-4;
+  }
+  /* 錯誤提示 */
+  .error-tip {
+    @apply text-sm text-functional-error;
+  }
+
+  /* 顯示欄位名稱 */
+  .display-label {
+    @apply font-normal text-sm leading-[120%] tracking-normal text-gray-500;
+  }
+
+  /* 顯示資料 */
+  .display-value {
+    @apply font-normal text-sm leading-[120%] tracking-normal
+          text-gray-900;
+  }
+
+  /* 提醒文字 */
+  .remind-text {
+    @apply font-normal text-[14px] leading-[100%] tracking-normal text-gray-500;
+  }
+
+  /* 啟用文字 */
+  .enabled-text {
+    @apply font-bold text-functional-success;
+  }
+
+  /* 停用文字 */
+  .disabled-text {
+    @apply font-bold text-functional-error;
+  }
+}
+
+/* ========== Input ========== */
+@layer components {
+  /* 基底輸入框：文字/數字/日期/密碼/下拉 */
+  .input-box {
+    @apply w-full h-8       
+           px-2 py-1 rounded-[4px]
+           text-gray-900 placeholder:text-gray-600 text-sm
+           bg-white border border-gray-300
+           outline-none 
+           transition-[border-color,box-shadow,background-color] duration-150
+           hover:border-gray-400 
+           focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
+           disabled:bg-gray-200 disabled:text-gray-600 disabled:placeholder:text-gray-600 disabled:cursor-not-allowed;
+  }
+  /** 多行文字輸入框 */
+  .textarea-box {
+    @apply w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+         focus:outline-none focus:ring-2 focus:ring-brand-100 
+         placeholder:text-gray-400 resize-none;
+  }
+
+  /* 下拉選單 */
+  .select-box {
+    @apply w-full min-w-24 h-8        
+           px-2 rounded-[4px]
+           text-gray-900 placeholder:text-gray-600  text-sm
+           bg-white border border-gray-300
+           outline-none 
+           transition-[border-color,box-shadow,background-color] duration-150
+           cursor-pointer
+           hover:border-gray-400 
+           focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
+           disabled:bg-gray-200 disabled:text-gray-900 disabled:placeholder:text-gray-600 disabled:cursor-not-allowed;
+  }
+
+  /* 多行文字輸入框 */
+  .textarea-box {
+    @apply w-full       
+           px-2 py-1 rounded-[4px]
+           text-gray-900 placeholder:text-gray-600 text-sm
+           bg-white border border-gray-300
+           outline-none 
+           transition-[border-color,box-shadow,background-color] duration-150
+           hover:border-gray-400 
+           focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
+           disabled:bg-gray-200 disabled:text-gray-600 disabled:placeholder:text-gray-600 disabled:cursor-not-allowed;
+  }
+}
+
+/* ========== Table ========== */
+@layer components {
+  .table-base {
+    @apply w-full border-collapse bg-white text-sm text-gray-700;
+  }
+
+  /* 表頭樣式 */
+  .table-base thead th {
+    @apply h-8 px-3 py-2 bg-brand-200 text-white whitespace-normal break-words;
+  }
+
+  /* 內容儲存格 */
+  .table-base tbody td {
+    @apply h-12 px-3 py-1 border border-gray-300 whitespace-normal break-words;
+  }
+
+  /* hover 效果 */
+  .table-base tbody tr:hover {
+    @apply bg-gray-50;
+  }
+}
+
+/* ========== Modal ========== */
+@layer components {
+  /* ==== Overlay & Shell ==== */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/40 grid place-items-center z-50;
+  }
+
+  .modal {
+    @apply w-[372px] bg-white rounded-xl overflow-hidden shadow-2xl;
+  }
+
+  /* Header / Body / Footer */
+  .modal-header {
+    @apply px-4 py-[14px] flex items-center justify-between border-b border-[#D1D5DC];
+  }
+  .modal-body {
+    @apply p-4;
+  }
+  .modal-footer {
+    @apply px-4 py-[14px] flex items-center justify-end;
+  }
+
+  /* 關閉按鈕 */
+  .icon-btn {
+    @apply bg-transparent border-0 text-[18px] leading-none p-1 rounded cursor-pointer hover:bg-slate-100;
+  }
+
+  /* ==== Form ==== */
+  .form-item {
+    @apply mb-[14px];
+  }
+  .form-row {
+    @apply flex flex-col;
+  }
+  .label {
+    @apply inline-block mb-[6px];
+  }
+  .required-indicator {
+    @apply text-red-600;
+  }
+  .help {
+    @apply mt-[6px] text-xs leading-none;
+  }
+  .help.error {
+    @apply text-red-600;
+  }
+
+  /* Toggle 開關 */
+  .switch {
+    @apply relative inline-flex w-11 h-6;
+  }
+  .switch input {
+    @apply hidden;
+  }
+  .slider {
+    @apply absolute inset-0 bg-slate-300 rounded-full transition;
+  }
+  .slider::before {
+    content: "";
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 9999px;
+    transition: transform 0.2s;
+  }
+  .switch input:checked + .slider {
+    @apply bg-emerald-600;
+  }
+  .switch input:checked + .slider::before {
+    transform: translateX(20px);
+  }
+}
+
+/* 大尺寸 */
+.btn-lg {
+  font-size: 16px;
+  padding: 10px 20px;
+}
+/* 小尺寸 */
+.btn-sm {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+/* 極小尺寸 */
+.btn-xs {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+/** Tab 樣式 */
+.tab-btn {
+  padding: 0.5rem 2.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  color: #111827;
+  background-color: #e5e7eb;
+  margin: 0 0 0.5rem;
+}
+
+.tab-btn:hover {
+  background-color: #d1d5db;
+}
+
+.tab-btn.active {
+  background-color: #ffffff;
+  color: #1f2937;
+  border-color: #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}

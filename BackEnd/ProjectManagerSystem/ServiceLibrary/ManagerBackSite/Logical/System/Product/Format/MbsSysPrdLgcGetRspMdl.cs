@@ -1,0 +1,42 @@
+using System.Collections.Generic;
+using DataModelLibrary.Database.ManagerProduct;
+using ServiceLibrary.ManagerBackSite.Logical.Base.Format;
+
+namespace ServiceLibrary.ManagerBackSite.Logical.System.Product.Format;
+
+/// <summary>管理者後台-系統-產品-取得-回應模型</summary>
+public class MbsSysPrdLgcGetRspMdl : MbsLgcBaseRspMdl
+{
+    /// <summary>管理者-產品-ID</summary>
+    public int ManagerProductID { get; set; }
+
+    /// <summary>管理者-產品-名稱</summary>
+    public string ManagerProductName { get; set; }
+
+    /// <summary>管理者-產品-主分類-ID</summary>
+    public int ManagerProductMainKindID { get; set; }
+
+    /// <summary>管理者-產品-主分類-名稱</summary>
+    public string ManagerProductMainKindName { get; set; }
+
+    /// <summary>管理者-產品-子分類-ID</summary>
+    public int ManagerProductSubKindID { get; set; }
+
+    /// <summary>管理者-產品-子分類-名稱</summary>
+    public string ManagerProductSubKindName { get; set; }
+
+    /// <summary>管理者-產品-類型</summary>
+    public DbManagerProductKindEnum ManagerProductKind { get; set; }
+
+    /// <summary>管理者-產品-是否主力產品</summary>
+    public bool ManagerProductIsKey { get; set; }
+
+    /// <summary>管理者-產品-備註</summary>
+    public string ManagerProductRemark { get; set; }
+
+    /// <summary>管理者-產品-是否啟用</summary>
+    public bool ManagerProductIsEnable { get; set; }
+
+    /// <summary>管理者-產品-規格-列表</summary>
+    public List<MbsSysPrdLgcGetManySpecificationRspItemMdl> ManagerProductSpecificationList { get; set; }
+}

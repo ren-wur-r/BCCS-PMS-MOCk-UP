@@ -1,0 +1,38 @@
+﻿[資料庫]
+場景：資料庫大部分欄位
+需求：英文(區分大小寫)、數字，相對多語系(拉丁類的語系)
+定序：Latin1_General_100_CS
+解析：
+Latin1_General:	通用的拉丁語系定序（適用多種語言，如英文、法文、德文、西班牙文、越南文等）。
+100:	SQL Server 2008 引入的新版本定序（更好的 Unicode 支援）。
+CS:	區分大小寫（Case-Sensitive），A ≠ a。
+
+[特定欄位]
+場景：記錄報表的文字型ID
+需求：英文(區分大小寫)、數字
+定序：Latin1_General_100_BIN2
+資料類型：char/varchar
+解析：
+Latin1_General:	通用的拉丁語系定序（適用多種語言，如英文、法文、德文、西班牙文、越南文等）。
+100:	SQL Server 2008 引入的新版本定序（更好的 Unicode 支援）。
+BIN2: 二進位排序
+
+[特定欄位]
+場景：使用者輸入文字
+需求：多國語系，需要區分所有可以區分的
+定序：Latin1_General_100_CS_AS_KS_WS_SC_UTF8
+資料類型：nchar/nvarchar
+解析：
+Latin1_General:	通用的拉丁語系定序（適用多種語言，如英文、法文、德文、西班牙文、越南文等）。
+100: SQL Server 2008 引入的新版本定序（更好的 Unicode 支援）。
+CS:	區分大小寫（Case-Sensitive），A ≠ a。
+AS:	區分重音（Accent-Sensitive），e ≠ é。
+KS:	區分假名（Kana-Sensitive），カ ≠ か（片假名 ≠ 平假名）。
+WS:	區分全形/半形（Width-Sensitive），Ａ ≠ A（全形 ≠ 半形）。
+SC:	支援增補字元（Supplementary Characters），允許 Unicode 裡的擴展字元，如 Emoji、部分中日韓罕見字。
+UTF8:	使用 UTF-8 編碼，節省儲存空間，適合多語言環境。
+
+[索引]
+PK：PK_{表格全名}
+UK：UK_{表格縮名}_{欄位名}
+IDX：IDX_{表格縮名}_{欄位名}

@@ -1,0 +1,44 @@
+using System.Text.Json.Serialization;
+using ApiModelLibrary.ManagerBackSite.Controller.Base;
+
+namespace ApiModelLibrary.ManagerBackSite.Controller.CRM.Phone;
+
+/// <summary>管理者後台-CRM-電銷管理-控制器-取得電銷產品-回應模型</summary>
+public class MbsCrmPhnCtlGetEmployeePipelineProductRspMdl : MbsCtlBaseRspMdl
+{
+    /// <summary>商機ID</summary>
+    [JsonPropertyName("a")]
+    public int EmployeePipelineID { get; set; }
+
+    /// <summary>管理者產品主分類ID</summary>
+    [JsonPropertyName("b")]
+    public int ManagerProductMainKindID { get; set; }
+
+    /// <summary>管理者產品主分類名稱</summary>
+    [JsonPropertyName("c")]
+    public string ManagerProductMainKindName { get; set; }
+
+    /// <summary>管理者產品子分類ID</summary>
+    [JsonPropertyName("d")]
+    public int ManagerProductSubKindID { get; set; }
+
+    /// <summary>管理者產品子分類名稱</summary>
+    [JsonPropertyName("e")]
+    public string ManagerProductSubKindName { get; set; }
+
+    /// <summary>管理者產品ID</summary>
+    [JsonPropertyName("f")]
+    public int ManagerProductID { get; set; }
+
+    /// <summary>管理者產品名稱</summary>
+    [JsonPropertyName("g")]
+    public string ManagerProductName { get; set; }
+
+    /// <summary>管理者產品規格ID</summary>
+    [JsonPropertyName("h")]
+    public int ManagerProductSpecificationID { get; set; }
+
+    /// <summary>管理者產品規格名稱</summary>
+    [JsonPropertyName("i")]
+    public string ManagerProductSpecificationName { get; set; }
+}

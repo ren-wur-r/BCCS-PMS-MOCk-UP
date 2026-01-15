@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "strict": true,
+    "jsx": "preserve",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "baseUrl": ".",
+    "types": ["node", "yup"] ,
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "outDir": "./dist",
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue"
+, "src/components/projectQuiz/ProjectQuizParticipantList.vue"  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.vue.js",
+    "**/*.js"
+  ]
+}

@@ -1,0 +1,91 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<Nullable>disable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<NoWarn>1701;1702;1591</NoWarn>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<PackageReference Include="Hangfire.InMemory" Version="1.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.20">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ServiceLibrary\ServiceLibrary.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Update="appsettings.Production.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="appsettings.Development.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="appsettings.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="appsettings.Local.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="appsettings.Staging.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Update="NLog.config">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="File\EdmSample.xlsx">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="File\TeamsSample.xlsx">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
+
+	<!-- 設定 TagVersion.txt 位置-->
+	<PropertyGroup>
+		<RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
+		<TagVersionFile>$(MSBuildThisFileDirectory)..\Specification\tagVersion.txt</TagVersionFile>
+		<!-- 確保 GenerateAssemblyInfo 前一定先套用版本 -->
+		<!--<GenerateAssemblyInfoDependsOn>ApplyTagVersion;$(GenerateAssemblyInfoDependsOn)</GenerateAssemblyInfoDependsOn>-->
+	</PropertyGroup>
+
+	<!-- 先產生 TagVersion.txt 並且寫入 version -->
+	<Target Name="GenerateTagVersion" BeforeTargets="GenerateAssemblyInfo">
+		<Exec Command="powershell -NoProfile -Command &quot;$tag = git describe --tags --abbrev=0; if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tag)) { exit 1 }; ($tag -split '/' | Select-Object -Last 1) | Set-Content -Encoding utf8 -NoNewline '$(TagVersionFile)'&quot;" IgnoreExitCode="true">
+			<Output TaskParameter="ExitCode" PropertyName="GitDescribeExitCode" />
+		</Exec>
+		<Exec Condition="'$(GitDescribeExitCode)' != '0' or !Exists('$(TagVersionFile)')"
+			  Command="powershell -NoProfile -Command &quot;git rev-parse --short HEAD | Set-Content -Encoding utf8 -NoNewline '$(TagVersionFile)'&quot;" IgnoreExitCode="true" />
+	</Target>
+
+	<!-- 讀取 TagVersion.txt，設定版本 -->
+	<!--<Target Name="ApplyTagVersion" BeforeTargets="GenerateAssemblyInfo" DependsOnTargets="GenerateTagVersion">
+		<ReadLinesFromFile File="$(TagVersionFile)">
+			<Output TaskParameter="Lines" PropertyName="TagVersionFromFile" />
+		</ReadLinesFromFile>
+		<PropertyGroup>
+			<TagVersion>$(TagVersionFromFile)</TagVersion>
+			<Version Condition="'$(TagVersion)' != ''">$(TagVersion)</Version>
+			<AssemblyVersion Condition="'$(TagVersion)' != ''">$(TagVersion)</AssemblyVersion>
+			<FileVersion Condition="'$(TagVersion)' != ''">$(TagVersion)</FileVersion>
+			<InformationalVersion Condition="'$(TagVersion)' != ''">$(TagVersion)</InformationalVersion>
+		</PropertyGroup>
+	</Target>-->
+
+	<!-- 強制重生 AssemblyInfo（避免被視為已最新而跳過） -->
+	<!--<Target Name="ForceRegenAssemblyInfo" BeforeTargets="GenerateAssemblyInfo">
+		<Delete Files="$(GeneratedAssemblyInfoFile)" ContinueOnError="true" />
+	</Target>-->
+	
+</Project>

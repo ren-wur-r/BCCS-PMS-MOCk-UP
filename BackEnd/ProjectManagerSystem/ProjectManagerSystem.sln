@@ -1,0 +1,79 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36717.8 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reference", "Reference", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonLibrary", "CommonLibrary\CommonLibrary.csproj", "{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataModelLibrary", "DataModelLibrary\DataModelLibrary.csproj", "{BAFAC729-0D31-4638-B465-C5CBC55A07CC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebApi", "WebApi", "{B703C917-347F-43DA-9739-47387C1846CF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Specification", "Specification", "{8DDC4786-5FC8-F15C-1CA5-9F41FD4BEB75}"
+	ProjectSection(SolutionItems) = preProject
+		Specification\Db規範.txt = Specification\Db規範.txt
+		Specification\tagVersion.txt = Specification\tagVersion.txt
+		Specification\UnitTest測驗邏輯規範.txt = Specification\UnitTest測驗邏輯規範.txt
+		Specification\初始上板流程.txt = Specification\初始上板流程.txt
+		Specification\基礎三層式架構.txt = Specification\基礎三層式架構.txt
+		Specification\程式碼縮寫規範.txt = Specification\程式碼縮寫規範.txt
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceLibrary", "ServiceLibrary\ServiceLibrary.csproj", "{3367ED83-34EF-4746-B9B8-0DFCFC9F1523}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiModelLibrary", "ApiModelLibrary\ApiModelLibrary.csproj", "{39C442CE-A22E-4E06-8C26-970AFE93A86B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProjectManagerWebApi", "ProjectManagerWebApi\ProjectManagerWebApi.csproj", "{AA604705-23E6-4AAF-993E-7D5B7BA9777F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTest", "UnitTest", "{EB958522-CE8A-4BCA-8A82-B51F575D0CA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceLibraryTest", "ServiceLibraryTest\ServiceLibraryTest.csproj", "{80739024-8EB4-45BA-A091-6A64B64EBA00}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAFAC729-0D31-4638-B465-C5CBC55A07CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAFAC729-0D31-4638-B465-C5CBC55A07CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAFAC729-0D31-4638-B465-C5CBC55A07CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAFAC729-0D31-4638-B465-C5CBC55A07CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3367ED83-34EF-4746-B9B8-0DFCFC9F1523}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3367ED83-34EF-4746-B9B8-0DFCFC9F1523}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3367ED83-34EF-4746-B9B8-0DFCFC9F1523}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3367ED83-34EF-4746-B9B8-0DFCFC9F1523}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39C442CE-A22E-4E06-8C26-970AFE93A86B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39C442CE-A22E-4E06-8C26-970AFE93A86B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39C442CE-A22E-4E06-8C26-970AFE93A86B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39C442CE-A22E-4E06-8C26-970AFE93A86B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA604705-23E6-4AAF-993E-7D5B7BA9777F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA604705-23E6-4AAF-993E-7D5B7BA9777F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA604705-23E6-4AAF-993E-7D5B7BA9777F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA604705-23E6-4AAF-993E-7D5B7BA9777F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80739024-8EB4-45BA-A091-6A64B64EBA00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80739024-8EB4-45BA-A091-6A64B64EBA00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80739024-8EB4-45BA-A091-6A64B64EBA00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80739024-8EB4-45BA-A091-6A64B64EBA00}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9ABBAEF5-BFB1-473D-9F39-953A154BCBE0} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{BAFAC729-0D31-4638-B465-C5CBC55A07CC} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{3367ED83-34EF-4746-B9B8-0DFCFC9F1523} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{39C442CE-A22E-4E06-8C26-970AFE93A86B} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{AA604705-23E6-4AAF-993E-7D5B7BA9777F} = {B703C917-347F-43DA-9739-47387C1846CF}
+		{80739024-8EB4-45BA-A091-6A64B64EBA00} = {EB958522-CE8A-4BCA-8A82-B51F575D0CA4}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {888C2529-1443-4739-A59A-DA0654DFC2D5}
+	EndGlobalSection
+EndGlobal
