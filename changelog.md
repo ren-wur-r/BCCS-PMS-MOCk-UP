@@ -304,6 +304,7 @@ To restore full production functionality:
 ## 2026-01-16 - Dashboard Work Log & Annotation Updates
 
 - Added dashboard top-level tabs (專案概況 / 工作日誌) for staff, manager, and sales views; moved existing content to 專案概況 and put work logs under 工作日誌 (FrontEnd/manager-back-site/src/views/home/components/StaffDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/ManagerDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/SalesDashboard.vue).
+- Scoped dashboard annotations per tab to prevent notes from appearing across 專案概況 / 工作日誌 (FrontEnd/manager-back-site/src/views/home/components/StaffDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/ManagerDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/SalesDashboard.vue).
 - Added quick work log lists for 專案日誌/日常日誌 with local storage persistence and inline display on dashboard (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
 - Updated work log modal labels to 最後更新日 (date/time split) and removed evening time slot (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
 - Styled work log action button as full-width dashed and moved below log lists (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).

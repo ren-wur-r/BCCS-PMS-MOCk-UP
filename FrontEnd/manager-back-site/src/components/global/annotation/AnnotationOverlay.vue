@@ -6,6 +6,8 @@ import { mockAnnotations, type MockAnnotationNote } from "@/services/mockApi/moc
 interface AnnotationNote extends MockAnnotationNote {
   source: "seed" | "local";
   scopeSelector?: string;
+  offsetX?: number;
+  offsetY?: number;
 }
 
 const route = useRoute();
@@ -190,7 +192,11 @@ const resolveNotePosition = (note: AnnotationNote) => {
     if (!isVisible) {
       return null;
     }
-    const pos = clampPosition(rect.left, rect.top);
+    const anchoredX =
+      typeof note.offsetX === "number" ? rect.left + note.offsetX : rect.left;
+    const anchoredY =
+      typeof note.offsetY === "number" ? rect.top + note.offsetY : rect.top;
+    const pos = clampPosition(anchoredX, anchoredY);
     return { ...note, x: pos.x, y: pos.y };
   }
   if (typeof note.x === "number" && typeof note.y === "number") {
@@ -265,6 +271,8 @@ const handleAddClick = (event: MouseEvent) => {
   const scopeSelector = scopeRoot ? createSelector(scopeRoot) : undefined;
   const selector = scopeRoot ? createSelector(target, scopeRoot) : createSelector(target);
   const rect = target.getBoundingClientRect();
+  const offsetX = event.clientX - rect.left;
+  const offsetY = event.clientY - rect.top;
   const pos = clampPosition(rect.left, rect.top);
   const note: AnnotationNote = {
     id: `local-${Date.now()}`,
@@ -273,6 +281,8 @@ const handleAddClick = (event: MouseEvent) => {
     scopeSelector,
     x: pos.x,
     y: pos.y,
+    offsetX,
+    offsetY,
     text: "",
     source: "local",
   };

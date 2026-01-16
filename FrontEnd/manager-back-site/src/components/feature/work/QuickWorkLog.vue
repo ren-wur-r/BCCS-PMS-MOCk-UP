@@ -49,6 +49,26 @@ const dailyLogList = ref<
   }[]
 >([]);
 
+const groupedProjectLogs = computed(() => {
+  const map = new Map<
+    string,
+    {
+      projectName: string;
+      logs: typeof projectLogList.value;
+    }
+  >();
+  projectLogList.value.forEach((item) => {
+    const key = item.projectName || "-";
+    const existing = map.get(key);
+    if (existing) {
+      existing.logs.push(item);
+    } else {
+      map.set(key, { projectName: key, logs: [item] });
+    }
+  });
+  return Array.from(map.values());
+});
+
 const departmentName = computed(() => employeeInfoStore.managerDepartmentName || "");
 const projectOptions = computed<WorkProjectItem[]>(() => {
   const list = (mockDataSets.workProjects ?? []) as WorkProjectItem[];
@@ -208,19 +228,35 @@ onMounted(() => {
       <div v-if="projectLogList.length === 0" class="text-sm text-gray-400 text-center py-4">
         尚無專案日誌
       </div>
-      <div v-else class="space-y-3">
+      <div v-else class="space-y-4">
         <div
-          v-for="item in projectLogList"
-          :key="item.id"
+          v-for="group in groupedProjectLogs"
+          :key="group.projectName"
           class="rounded-lg border border-gray-200 p-3"
         >
-          <div class="flex items-center justify-between text-xs text-gray-500">
-            <span>{{ item.projectName }}</span>
-            <span>{{ item.dateLabel }} {{ item.timeLabel }}</span>
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-semibold text-gray-800">{{ group.projectName }}</h4>
+            <span class="text-xs text-gray-400">{{ group.logs.length }} 筆</span>
           </div>
-          <div class="mt-2 text-sm font-semibold text-gray-700">{{ item.milestone }}</div>
-          <div class="mt-1 text-xs text-gray-500">時段：{{ item.timeSlot }}</div>
-          <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ item.content }}</p>
+          <div class="mt-3 space-y-3">
+            <div
+              v-for="item in group.logs"
+              :key="item.id"
+              class="rounded-md border border-gray-200 bg-gray-50 p-3"
+            >
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>{{ item.dateLabel }} {{ item.timeLabel }}</span>
+                <span>時段：{{ item.timeSlot }}</span>
+              </div>
+              <div class="mt-2 text-sm font-semibold text-gray-700">
+                {{ item.milestone }}
+              </div>
+              <div class="mt-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
+                <p class="text-xs font-semibold text-blue-700">日誌內容</p>
+                <p class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ item.content }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -244,7 +280,10 @@ onMounted(() => {
             <span>{{ item.dateLabel }} {{ item.timeLabel }}</span>
           </div>
           <div class="mt-1 text-xs text-gray-500">時段：{{ item.timeSlot }}</div>
-          <p class="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{{ item.content }}</p>
+          <div class="mt-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
+            <p class="text-xs font-semibold text-blue-700">日誌內容</p>
+            <p class="mt-1 text-sm text-gray-700 whitespace-pre-wrap">{{ item.content }}</p>
+          </div>
         </div>
       </div>
     </div>

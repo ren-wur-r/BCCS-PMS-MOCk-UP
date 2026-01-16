@@ -279,7 +279,11 @@ const clickProjectRow = (projectId: number) => {
       </button>
     </div>
 
-    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+    <div
+      v-if="dashboardTab === 'overview'"
+      class="flex flex-col gap-6"
+      data-annotation-scope="dashboard-overview"
+    >
       <!-- Department Overview -->
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div class="bg-white rounded-lg shadow p-6">
@@ -543,7 +547,7 @@ const clickProjectRow = (projectId: number) => {
       </div>
     </div>
 
-    <div v-else class="flex flex-col gap-6">
+    <div v-else class="flex flex-col gap-6" data-annotation-scope="dashboard-worklog">
       <QuickWorkLog />
     </div>
   </div>

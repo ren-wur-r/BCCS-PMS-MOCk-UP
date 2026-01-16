@@ -179,7 +179,11 @@ const navigateToPipeline = (pipelineId: number) => {
       </button>
     </div>
 
-    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+    <div
+      v-if="dashboardTab === 'overview'"
+      class="flex flex-col gap-6"
+      data-annotation-scope="dashboard-overview"
+    >
       <div class="flex gap-3 border-b border-gray-200">
         <button
           class="px-4 py-2 text-sm font-semibold rounded-t-md"
@@ -337,7 +341,7 @@ const navigateToPipeline = (pipelineId: number) => {
       </div>
     </div>
 
-    <div v-else class="flex flex-col gap-6">
+    <div v-else class="flex flex-col gap-6" data-annotation-scope="dashboard-worklog">
       <QuickWorkLog />
     </div>
   </div>

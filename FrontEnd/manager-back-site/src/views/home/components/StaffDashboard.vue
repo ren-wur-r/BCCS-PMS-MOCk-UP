@@ -174,7 +174,11 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
       </button>
     </div>
 
-    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+    <div
+      v-if="dashboardTab === 'overview'"
+      class="flex flex-col gap-6"
+      data-annotation-scope="dashboard-overview"
+    >
       <div v-if="isTeleSales" class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4">電銷名單概況</h3>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -432,7 +436,7 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
       </div>
     </div>
 
-    <div v-else class="flex flex-col gap-6">
+    <div v-else class="flex flex-col gap-6" data-annotation-scope="dashboard-worklog">
       <QuickWorkLog />
     </div>
   </div>
