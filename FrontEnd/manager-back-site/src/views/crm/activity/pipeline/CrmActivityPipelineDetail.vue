@@ -1,11 +1,12 @@
 <script setup lang="ts">
 //#region 引入
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useTokenStore } from "@/stores/token";
 import { useAuth } from "@/composables/useAuth";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useSuccessHandler } from "@/composables/useSuccessHandler";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import {
   getActivity,
   getActivityEmployeePipeline,
@@ -40,6 +41,7 @@ import ActivityDetailTabs from "@/components/feature/activity/ActivityDetailTabs
 const employeeInfoStore = useEmployeeInfoStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** token驗證相關 */
 const { requireToken } = useAuth();
 /** 錯誤訊息相關 */
@@ -319,6 +321,22 @@ onMounted(() => {
   getActivityPipelineData();
   // 取得活動資料
   getActivityData();
+});
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<PipelineTabEnum, string> = {
+      [PipelineTabEnum.BasicData]: "基本資料",
+      [PipelineTabEnum.Survey]: "問卷",
+    };
+    setModuleTitle(titleMap[tab] ?? "基本資料");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 //#endregion
 

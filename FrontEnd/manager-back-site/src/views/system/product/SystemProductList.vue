@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //#region 引入
-import { reactive, ref, onMounted, watch } from "vue";
+import { reactive, ref, onMounted, watch, onBeforeUnmount } from "vue";
 import router from "@/router";
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 import { useTokenStore } from "@/stores/token";
@@ -8,6 +8,7 @@ import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useSuccessHandler } from "@/composables/useSuccessHandler";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
 import { useAuth } from "@/composables/useAuth";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import {
   getManyProductSubKind,
   getManyProductMainKind,
@@ -54,6 +55,7 @@ import {
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -720,6 +722,23 @@ watch(
 //#region 生命週期
 onMounted(() => {
   getProductList();
+});
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<ProductTabEnum, string> = {
+      [ProductTabEnum.Product]: "產品",
+      [ProductTabEnum.SubKind]: "子分類",
+      [ProductTabEnum.MainKind]: "主分類",
+    };
+    setModuleTitle(titleMap[tab] ?? "產品");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 //#endregion
 

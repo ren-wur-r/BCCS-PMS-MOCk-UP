@@ -1,11 +1,12 @@
 <script setup lang="ts">
 //#region 引入
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useTokenStore } from "@/stores/token";
 import { useAuth } from "@/composables/useAuth";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useSuccessHandler } from "@/composables/useSuccessHandler";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import {
   getManyPhoneEmployeePipelineContacter,
   getManyPhoneEmployeePipelinePhone,
@@ -67,6 +68,7 @@ import ActivityDetailTabs from "@/components/feature/activity/ActivityDetailTabs
 const employeeInfoStore = useEmployeeInfoStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** token驗證相關 */
 const { requireToken } = useAuth();
 /** 錯誤訊息相關 */
@@ -782,6 +784,22 @@ onMounted(() => {
   getEmployeePipelineSalerList();
   getEmployeePipelinePhoneList();
 });
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<PipelineTabEnum, string> = {
+      [PipelineTabEnum.BasicData]: "基本資料",
+      [PipelineTabEnum.Survey]: "問卷",
+    };
+    setModuleTitle(titleMap[tab] ?? "基本資料");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
 //#endregion
 
 </script>
@@ -1284,8 +1302,12 @@ onMounted(() => {
               <div class="flex justify-between items-center">
                 <h3 class="subtitle">確認窗口</h3>
                 <!-- 附加窗口 按鈕 -->
-                <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'create')" class="btn-add"
-                  @click="clickAddContacterBtn">
+                <button
+                  v-if="employeeInfoStore.hasEveryonePermission(menu, 'create')"
+                  class="rounded-lg border border-dashed px-4 py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+                  style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+                  @click="clickAddContacterBtn"
+                >
                   附加窗口
                 </button>
               </div>
@@ -1325,8 +1347,12 @@ onMounted(() => {
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                         <div class="flex flex-row gap-1">
-                          <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'edit')" class="btn-update"
-                            @click="clickUpdateContacterBtn(item.managerContacterID)">
+                          <button
+                            v-if="employeeInfoStore.hasEveryonePermission(menu, 'edit')"
+                            class="rounded-lg border border-dashed px-3 py-1 text-xs font-medium text-[#082F49] hover:text-[#061F30]"
+                            style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+                            @click="clickUpdateContacterBtn(item.managerContacterID)"
+                          >
                             編輯
                           </button>
                           <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'delete')" class="btn-delete"
@@ -1503,8 +1529,12 @@ onMounted(() => {
                       {{ formatCurrency(item.managerProductSpecificationSellPrice) }}
                     </td>
                     <td class="text-center">
-                      <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'edit')" class="btn-update me-1"
-                        @click="clickUpdateProductBtn(item.employeePipelineProductID)">
+                      <button
+                        v-if="employeeInfoStore.hasEveryonePermission(menu, 'edit')"
+                        class="me-1 rounded-lg border border-dashed px-3 py-1 text-xs font-medium text-[#082F49] hover:text-[#061F30]"
+                        style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+                        @click="clickUpdateProductBtn(item.employeePipelineProductID)"
+                      >
                         編輯
                       </button>
                       <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'delete')" class="btn-delete"
@@ -1520,8 +1550,12 @@ onMounted(() => {
             <!-- 無資料顯示 -->
             <div v-else class="text-center py-8 text-gray-500">尚未選擇任何產品</div>
 
-            <button v-if="employeeInfoStore.hasEveryonePermission(menu, 'create')" class="btn-add"
-              @click="isShowAddProductModal = true">
+            <button
+              v-if="employeeInfoStore.hasEveryonePermission(menu, 'create')"
+              class="rounded-lg border border-dashed px-4 py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+              style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+              @click="isShowAddProductModal = true"
+            >
               附加產品
             </button>
           </div>

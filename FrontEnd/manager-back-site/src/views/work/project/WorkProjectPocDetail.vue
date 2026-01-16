@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { loadProjectTemplateSettings, getStageTemplatesByServiceItems } from "@/stores/projectTemplateSettings";
 import { getPipelineStatusLabel } from "@/utils/getPipelineStatusLabel";
 import { mockDataSets } from "@/services/mockApi/mockDataSets";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 const route = useRoute();
 const router = useRouter();
 const pipelineId = Number(route.params.pipelineId || 0);
 const templateSettings = loadProjectTemplateSettings();
 const activeTab = ref<"info" | "template" | "milestone">("info");
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 
 const detailKey = `cache.crm.pipeline.detail.${pipelineId}`;
 const pocKey = `cache.crm.pipeline.poc.${pipelineId}`;
@@ -160,7 +162,21 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("crm-poc-updated", handlePocUpdated as EventListener);
   window.removeEventListener("storage", handleStorage);
+  clearModuleTitle();
 });
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<string, string> = {
+      info: "POC 資訊",
+      template: "標準階段與產出",
+      milestone: "里程碑",
+    };
+    setModuleTitle(titleMap[tab] ?? "POC 資訊");
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

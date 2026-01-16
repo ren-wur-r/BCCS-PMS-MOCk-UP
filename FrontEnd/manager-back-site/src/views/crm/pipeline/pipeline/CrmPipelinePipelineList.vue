@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //#region 引入
-import { reactive, onMounted, ref } from "vue";
+import { computed, reactive, onMounted, ref, watch } from "vue";
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 import { DbAtomPipelineStatusEnum } from "@/constants/DbAtomPipelineStatusEnum";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
@@ -13,13 +13,12 @@ import type {
 import { getManyEmployeePipeline } from "@/services/index";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useAuth } from "@/composables/useAuth";
-import { getPipelineStatusLabel } from "@/utils/getPipelineStatusLabel";
 import { formatDate } from "@/utils/timeFormatter";
 import router from "@/router";
 import Pagination from "@/components/global/pagination/Pagination.vue";
 import ErrorAlert from "@/components/global/feedback/ErrorAlert.vue";
-import GetManyEmployeeComboBox from "@/components/feature/search-bar/GetManyEmployeeComboBox.vue";
 import CrmPipelinePipelineAddModal from "./components/CrmPipelinePipelineAddModal.vue";
+import { orgMemberDirectory } from "@/constants/orgMemberDirectory";
 //#endregion
 
 //#region 外部依賴
@@ -52,6 +51,10 @@ interface CrmPipelinePipelineListQueryMdl {
   atomPipelineStatus: DbAtomPipelineStatusEnum | null;
   /** 管理者公司名稱 */
   managerCompanyName: string | null;
+  /** 業務區域 */
+  managerRegionName: string | null;
+  /** 業務名稱 */
+  employeePipelineSalerEmployeeName: string | null;
   /** 頁面索引 */
   pageIndex: number;
   /** 頁面筆數 */
@@ -66,6 +69,10 @@ interface CrmPipelinePipelineListItemMdl {
   atomPipelineStatus: DbAtomPipelineStatusEnum;
   /** 管理公司名稱 */
   managerCompanyName: string;
+  /** 負責業務 */
+  employeePipelineSalerEmployeeName: string;
+  /** 負責業務區域 */
+  employeePipelineSalerRegionName: string | null;
   /** 專案類型 */
   projectTypeName?: string | null;
   /** 案別 */
@@ -99,12 +106,121 @@ const crmPipelinePipelineListViewObj = reactive<CrmPipelinePipelineListViewMdl>(
   query: {
     atomPipelineStatus: null,
     managerCompanyName: null,
+    managerRegionName: null,
+    employeePipelineSalerEmployeeName: null,
     pageIndex: 1,
     pageSize: 10,
   },
   employeePipelineList: [],
   totalCount: 0,
 });
+
+const isGeneralManager = computed(() => employeeInfoStore.effectiveRoleName === "總經理");
+const isSalesRole = computed(() => (employeeInfoStore.effectiveRoleName || "").includes("業務"));
+const currentRegionName = computed(() => employeeInfoStore.managerRegionName || "");
+
+const salerNameOptions = computed(() => {
+  const names = orgMemberDirectory.map((member) => member.name);
+  return Array.from(new Set(names)).sort();
+});
+
+const getSalerRegionName = (name: string) => {
+  const match = orgMemberDirectory.find((member) => member.name === name);
+  return match?.regionName || null;
+};
+
+const selectedPipelineIds = ref<number[]>([]);
+const batchAssigneeName = ref<string>("");
+const batchRegionName = ref<string>("");
+const batchRegionOptions = ["北區", "中區", "南區", "跨區"];
+
+const selectedItems = computed(() =>
+  crmPipelinePipelineListViewObj.employeePipelineList.filter((item) =>
+    selectedPipelineIds.value.includes(item.employeePipelineID)
+  )
+);
+
+const selectedAssigneeSummary = computed(() => {
+  const names = Array.from(new Set(selectedItems.value.map((item) => item.employeePipelineSalerEmployeeName)));
+  return names.length ? names.join("、") : "-";
+});
+
+const selectedRegionSummary = computed(() => {
+  const regions = Array.from(
+    new Set(
+      selectedItems.value
+        .map((item) => item.employeePipelineSalerRegionName)
+        .filter((name): name is string => Boolean(name))
+    )
+  );
+  return regions.length === 1 ? regions[0] : "";
+});
+
+const batchAssigneeOptions = computed(() => {
+  const region = batchRegionName.value;
+  const list =
+    region && region !== "跨區"
+      ? orgMemberDirectory.filter((member) => member.regionName === region)
+      : orgMemberDirectory;
+  const names = list.map((member) => member.name);
+  return Array.from(new Set(names)).sort();
+});
+
+const toggleSelectAll = () => {
+  if (selectedPipelineIds.value.length === crmPipelinePipelineListViewObj.employeePipelineList.length) {
+    selectedPipelineIds.value = [];
+    return;
+  }
+  selectedPipelineIds.value = crmPipelinePipelineListViewObj.employeePipelineList.map(
+    (item) => item.employeePipelineID
+  );
+};
+
+const toggleSelectItem = (id: number) => {
+  if (selectedPipelineIds.value.includes(id)) {
+    selectedPipelineIds.value = selectedPipelineIds.value.filter((itemId) => itemId !== id);
+  } else {
+    selectedPipelineIds.value = [...selectedPipelineIds.value, id];
+  }
+};
+
+watch(
+  () => selectedPipelineIds.value,
+  () => {
+    const autoRegion = selectedRegionSummary.value;
+    batchRegionName.value = autoRegion || "";
+    batchAssigneeName.value = "";
+  },
+  { deep: true }
+);
+
+watch(
+  () => batchRegionName.value,
+  () => {
+    batchAssigneeName.value = "";
+  }
+);
+
+const applyBatchAssignee = () => {
+  if (!batchAssigneeName.value) return;
+  const regionName =
+    batchRegionName.value && batchRegionName.value !== "跨區"
+      ? batchRegionName.value
+      : getSalerRegionName(batchAssigneeName.value);
+  crmPipelinePipelineListViewObj.employeePipelineList = crmPipelinePipelineListViewObj.employeePipelineList.map(
+    (item) => {
+      if (!selectedPipelineIds.value.includes(item.employeePipelineID)) return item;
+      return {
+        ...item,
+        employeePipelineSalerEmployeeName: batchAssigneeName.value,
+        employeePipelineSalerRegionName: regionName,
+      };
+    }
+  );
+  selectedPipelineIds.value = [];
+  batchAssigneeName.value = "";
+  batchRegionName.value = "";
+};
 //#endregion
 
 //#region API / 資料流程
@@ -138,6 +254,8 @@ const getList = async () => {
           employeePipelineID: item.employeePipelineID,
           atomPipelineStatus: item.atomPipelineStatus,
           managerCompanyName: item.managerCompanyName,
+          employeePipelineSalerEmployeeName: item.employeePipelineSalerEmployeeName || "-",
+          employeePipelineSalerRegionName: getSalerRegionName(item.employeePipelineSalerEmployeeName),
           projectTypeName: null,
           isRenewal: null,
           isOutsourced: null,
@@ -160,6 +278,8 @@ const getList = async () => {
         employeePipelineID: item.id,
         atomPipelineStatus: item.status,
         managerCompanyName: item.companyName,
+        employeePipelineSalerEmployeeName: "-",
+        employeePipelineSalerRegionName: null,
         projectTypeName: null,
         isRenewal: item.isRenewal ?? null,
         isOutsourced: item.isOutsourced ?? null,
@@ -182,8 +302,30 @@ const getList = async () => {
   );
   mappedList = filteredList;
 
+  if (isSalesRole.value && !isGeneralManager.value && currentRegionName.value) {
+    mappedList = mappedList.filter((item) => item.employeePipelineSalerRegionName === currentRegionName.value);
+  }
+
+  if (isGeneralManager.value) {
+    if (crmPipelinePipelineListViewObj.query.managerRegionName) {
+      mappedList = mappedList.filter(
+        (item) =>
+          item.employeePipelineSalerRegionName ===
+          crmPipelinePipelineListViewObj.query.managerRegionName
+      );
+    }
+    if (crmPipelinePipelineListViewObj.query.employeePipelineSalerEmployeeName) {
+      mappedList = mappedList.filter(
+        (item) =>
+          item.employeePipelineSalerEmployeeName ===
+          crmPipelinePipelineListViewObj.query.employeePipelineSalerEmployeeName
+      );
+    }
+  }
+
   crmPipelinePipelineListViewObj.employeePipelineList = mappedList;
   crmPipelinePipelineListViewObj.totalCount = mappedList.length;
+  selectedPipelineIds.value = [];
 };
 //#endregion
 
@@ -198,6 +340,8 @@ const clickSearchBtn = () => {
 const clickClearSearchBtn = () => {
   crmPipelinePipelineListViewObj.query.atomPipelineStatus = null;
   crmPipelinePipelineListViewObj.query.managerCompanyName = null;
+  crmPipelinePipelineListViewObj.query.managerRegionName = null;
+  crmPipelinePipelineListViewObj.query.employeePipelineSalerEmployeeName = null;
 };
 
 /** 點擊【新增】按鈕 */
@@ -300,6 +444,31 @@ onMounted(() => {
               placeholder="客戶名稱"
             />
           </div>
+
+          <template v-if="isGeneralManager">
+            <div>
+              <select
+                v-model="crmPipelinePipelineListViewObj.query.managerRegionName"
+                class="select-box"
+              >
+                <option :value="null">全部區域</option>
+                <option value="北區">北區</option>
+                <option value="中區">中區</option>
+                <option value="南區">南區</option>
+              </select>
+            </div>
+            <div>
+              <select
+                v-model="crmPipelinePipelineListViewObj.query.employeePipelineSalerEmployeeName"
+                class="select-box"
+              >
+                <option :value="null">全部業務</option>
+                <option v-for="name in salerNameOptions" :key="name" :value="name">
+                  {{ name }}
+                </option>
+              </select>
+            </div>
+          </template>
         </div>
 
         <div class="flex gap-1">
@@ -310,12 +479,51 @@ onMounted(() => {
 
       <hr />
 
+      <div
+        v-if="isGeneralManager && selectedPipelineIds.length > 0"
+        class="flex items-center justify-between rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3"
+      >
+        <div class="text-sm text-gray-600">
+          已選 {{ selectedPipelineIds.length }} 筆｜負責人：{{ selectedAssigneeSummary }}
+        </div>
+        <div class="flex items-center gap-2">
+          <select v-model="batchRegionName" class="select-box">
+            <option value="">選擇區域</option>
+            <option v-for="region in batchRegionOptions" :key="region" :value="region">
+              {{ region }}
+            </option>
+          </select>
+          <select v-model="batchAssigneeName" class="select-box">
+            <option value="">選擇新負責人</option>
+            <option v-for="name in batchAssigneeOptions" :key="name" :value="name">
+              {{ name }}
+            </option>
+          </select>
+          <button class="btn-update" type="button" @click="applyBatchAssignee">
+            更改業務
+          </button>
+        </div>
+      </div>
+
       <!-- 列表 -->
       <div class="flex-1 overflow-y-auto table-scrollable">
         <table class="table-base table-fixed table-sticky w-full">
           <thead class="sticky top-0 bg-white z-10">
             <tr>
+              <th v-if="isGeneralManager" class="text-center w-12">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4"
+                  :checked="
+                    crmPipelinePipelineListViewObj.employeePipelineList.length > 0 &&
+                    selectedPipelineIds.length ===
+                      crmPipelinePipelineListViewObj.employeePipelineList.length
+                  "
+                  @click.stop="toggleSelectAll"
+                />
+              </th>
               <th class="text-start w-48">客戶名稱</th>
+              <th class="text-start w-32">負責人</th>
               <th class="text-start w-24">商機狀態</th>
               <th class="text-start w-32">專案類型</th>
               <th class="text-start w-20">案別</th>
@@ -328,7 +536,7 @@ onMounted(() => {
           <tbody>
             <template v-if="crmPipelinePipelineListViewObj.employeePipelineList.length === 0">
               <tr class="text-center">
-                <td colspan="7">無資料</td>
+                <td :colspan="isGeneralManager ? 9 : 8">無資料</td>
               </tr>
             </template>
             <template v-else>
@@ -338,8 +546,19 @@ onMounted(() => {
                 class="cursor-pointer hover:bg-gray-50 transition-colors"
                 @click="clickDetailBtn(item.employeePipelineID)"
               >
+                <td v-if="isGeneralManager" class="text-center">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4"
+                    :checked="selectedPipelineIds.includes(item.employeePipelineID)"
+                    @click.stop="toggleSelectItem(item.employeePipelineID)"
+                  />
+                </td>
                 <td class="text-start">
                   {{ item.managerCompanyName }}
+                </td>
+                <td class="text-start">
+                  {{ item.employeePipelineSalerEmployeeName || "-" }}
                 </td>
                 <td class="text-start">
                   <span
@@ -371,8 +590,9 @@ onMounted(() => {
         </table>
       </div>
       <button
+        v-if="!isGeneralManager"
         class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
-        style="margin-top:1cm;background-color:#F2F6F9;border-color:#082F49;"
+        style="margin-top:3px;background-color:#F2F6F9;border-color:#082F49;"
         type="button"
         @click.prevent="clickAddBtn"
       >

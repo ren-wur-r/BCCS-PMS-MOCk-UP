@@ -62,18 +62,11 @@ const emit = defineEmits<Emits>();
           />
         </svg>
       </div>
-      <button
-        v-if="!props.readonly && employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
-        class="btn-add"
-        @click="emit('addDue')"
-      >
-        新增履約期限通知
-      </button>
     </div>
 
     <!-- 使用 v-show 控制內容顯示 -->
     <div v-show="isExpanded">
-      <div v-if="dueList.length === 0" class="text-gray-400 text-center py-4">無履約期限通知</div>
+      <div v-if="dueList.length === 0"></div>
 
       <div v-else>
         <table class="table-base table-fixed table-sticky w-full">
@@ -116,6 +109,16 @@ const emit = defineEmits<Emits>();
           </tbody>
         </table>
       </div>
+
+      <button
+        v-if="!props.readonly && employeeInfoStore.hasPermission(menu, 'create')"
+        class="mt-[3px] w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        type="button"
+        style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        @click="emit('addDue')"
+      >
+        新增履約通知
+      </button>
     </div>
   </div>
 </template>

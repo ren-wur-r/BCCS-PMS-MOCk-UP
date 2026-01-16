@@ -27,6 +27,8 @@ interface Props {
   readonly?: boolean;
   /** Booking code */
   bookingCode?: string | null;
+  /** 是否顯示客戶資訊欄位 */
+  showCompanyFields?: boolean;
 }
 
 interface Emits {
@@ -47,6 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
   displayPipelineStatus: null,
   company: null,
   bookingCode: null,
+  showCompanyFields: true,
 });
 
 const emit = defineEmits<Emits>();
@@ -186,19 +189,19 @@ const handlePipelineButtonClick = () => {
         <label class="form-label">商機狀態</label>
         <input type="text" class="input-box" :value="displayStatusLabel" disabled />
       </div>
-      <div class="flex flex-col gap-2 flex-1">
+      <div v-if="props.showCompanyFields" class="flex flex-col gap-2 flex-1">
         <label class="form-label">客戶所在地區</label>
         <input type="text" class="input-box" :value="companyRegionLabel" disabled />
       </div>
-      <div class="flex flex-col gap-2 flex-1">
+      <div v-if="props.showCompanyFields" class="flex flex-col gap-2 flex-1">
         <label class="form-label">客戶名稱</label>
         <input type="text" class="input-box" :value="companyNameLabel" disabled />
       </div>
-      <div class="flex flex-col gap-2 flex-1">
+      <div v-if="props.showCompanyFields" class="flex flex-col gap-2 flex-1">
         <label class="form-label">統編</label>
         <input type="text" class="input-box" :value="companyUnifiedNumberLabel" disabled />
       </div>
-      <div class="flex flex-col gap-2 flex-1">
+      <div v-if="props.showCompanyFields" class="flex flex-col gap-2 flex-1">
         <label class="form-label">Booking Code</label>
         <input
           v-model="bookingCodeDraft"

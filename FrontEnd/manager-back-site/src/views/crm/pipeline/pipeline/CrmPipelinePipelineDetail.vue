@@ -1,7 +1,7 @@
 <script setup lang="ts">
 //#region 引入
 // Vue
-import { ref, reactive, onMounted, computed, watch } from "vue";
+import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from "vue";
 // Enums / 常數
 import { DbAtomPipelineStatusEnum } from "@/constants/DbAtomPipelineStatusEnum";
 import { DbAtomEmployeeRangeEnum } from "@/constants/DbAtomEmployeeRangeEnum";
@@ -26,6 +26,7 @@ import { useSuccessHandler } from "@/composables/useSuccessHandler";
 import { useAuth } from "@/composables/useAuth";
 import { useRouteParamId } from "@/composables/useRouteParamId";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 // Services
 import {
   MbsCrmPplHttpGetEmployeePipelineReqMdl,
@@ -85,14 +86,14 @@ import {
   formatToServerDateEndISO8,
 } from "@/utils/timeFormatter";
 import { getPipelineStatusLabel } from "@/utils/getPipelineStatusLabel";
+import { getCityLabel } from "@/utils/getCityLabel";
+import { mockDataSets } from "@/services/mockApi/mockDataSets";
 // Components
 import SuccessToast from "@/components/global/feedback/SuccessToast.vue";
 import ErrorAlert from "@/components/global/feedback/ErrorAlert.vue";
 import ConfirmDialog from "@/components/global/feedback/ConfirmDialog.vue";
-import PipelineBasicInfoSection from "./components/sections/PipelineBasicInfoSection.vue";
 import PipelineCompanySection from "./components/sections/PipelineCompanySection.vue";
 import PipelineContacterSection from "./components/sections/PipelineContacterSection.vue";
-import PipelineTrackingSection from "./components/sections/PipelineTrackingSection.vue";
 import PipelineProductSection from "./components/sections/PipelineProductSection.vue";
 import PipelineBillSection from "./components/sections/PipelineBillSection.vue";
 import PipelineDueSection from "./components/sections/PipelineDueSection.vue";
@@ -105,6 +106,7 @@ import ConfirmBillIssueModal from "./components/modals/ConfirmBillIssueModal.vue
 import PipelineProductModal from "./components/modals/PipelineProductModal.vue";
 import PipelineDueModal from "./components/modals/PipelineDueModal.vue";
 import TrackingModal from "./components/modals/TrackingModal.vue";
+import PipelineContacterModal from "./components/modals/PipelineContacterModal.vue";
 // Router
 import router from "@/router";
 //#endregion
@@ -113,6 +115,7 @@ import router from "@/router";
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** token驗證相關 */
 const { requireToken } = useAuth();
 /** 錯誤訊息相關 */
@@ -325,6 +328,10 @@ interface CrmPipelinePipelineDetailBillItemMdl {
   employeePipelineBillPeriodNumber: number;
   /** 發票日期 */
   employeePipelineBillBillTime: string;
+  /** 發票種類：先開發票/後執行 */
+  employeePipelineBillIsPreIssued: boolean;
+  /** 預計執行日 */
+  employeePipelineBillExecuteDate: string | null;
   /** 未稅發票金額 */
   employeePipelineBillNoTaxAmount: number;
   /** 備註 */
@@ -477,16 +484,20 @@ const presentationDetail = reactive({
 });
 const presentationTimeSlots = ["上午", "下午", "晚上"];
 const lastUpdatedAt = ref<Date | null>(null);
+const lastUpdatedNote = ref<string>("");
 const updateTrackingEnabled = ref(false);
-const markUpdated = () => {
+const markUpdated = (note?: string) => {
   if (!updateTrackingEnabled.value) return;
   lastUpdatedAt.value = new Date();
+  if (note) {
+    lastUpdatedNote.value = note;
+  }
 };
-const lastUpdatedLabel = computed(() =>
-  lastUpdatedAt.value
-    ? lastUpdatedAt.value.toLocaleString("zh-TW", { hour12: false })
-    : "尚未更新"
-);
+const lastUpdatedLabel = computed(() => {
+  if (!lastUpdatedAt.value) return "尚未更新";
+  const dateLabel = lastUpdatedAt.value.toLocaleString("zh-TW", { hour12: false });
+  return lastUpdatedNote.value ? `${dateLabel}｜${lastUpdatedNote.value}` : dateLabel;
+});
 
 const pocForm = reactive<PocFormMdl>({
   startDate: "",
@@ -687,6 +698,36 @@ const getFieldRequiredLabel = (field: StageStatusFieldDefinition): string => {
 const isStageFieldConfirmed = (value: DbEmployeePipelineStageCheckEnum | null): boolean =>
   value === DbEmployeePipelineStageCheckEnum.Confirmed;
 
+type NegotiationProgress = "in_progress" | "completed" | null;
+const negotiationProgress = ref<NegotiationProgress>(null);
+
+const getNegotiationLabel = (progress: NegotiationProgress) => {
+  if (progress === "completed") return "議價完成";
+  if (progress === "in_progress") return "議價中";
+  return "未確認";
+};
+const setNegotiationStatus = (status: DbEmployeePipelineStageCheckEnum | null, progress: NegotiationProgress) => {
+  const before = getNegotiationLabel(negotiationProgress.value);
+  stageStatusForm.businessNegotiationStatus = status;
+  negotiationProgress.value = progress;
+  const after = getNegotiationLabel(negotiationProgress.value);
+  if (before !== after) {
+    markUpdated(`議價 ${before} -> ${after}`);
+  }
+};
+
+watch(
+  () => stageStatusForm.businessNegotiationStatus,
+  (value) => {
+    if (value === DbEmployeePipelineStageCheckEnum.Confirmed) {
+      negotiationProgress.value = negotiationProgress.value ?? "in_progress";
+      return;
+    }
+    negotiationProgress.value = null;
+  },
+  { immediate: true }
+);
+
 const autoPipelineStatus = computed(() => {
   const current = crmPipelinePipelineDetailViewObj.atomPipelineStatus;
   if (
@@ -725,7 +766,88 @@ const autoPipelineStatus = computed(() => {
   return null;
 });
 
-const pipelineTab = ref<"potential" | "formal" | "customer">("potential");
+const displayPipelineStatusLabel = computed(() => {
+  const status = autoPipelineStatus.value;
+  if (status === null || status === undefined) return "-";
+  if (status === DbAtomPipelineStatusEnum.TransferredToProject) return "成立專案";
+  if (status === DbAtomPipelineStatusEnum.Business10Percent) return "10%";
+  if (status === DbAtomPipelineStatusEnum.Business30Percent) return "30%";
+  if (status === DbAtomPipelineStatusEnum.Business70Percent) return "70%";
+  if (status === DbAtomPipelineStatusEnum.Business100Percent) return "100%";
+  return getPipelineStatusLabel(status);
+});
+
+const isRenewalPipeline = computed(() =>
+  crmPipelinePipelineDetailViewObj.employeePipelineProductList.some(
+    (item) =>
+      item.employeePipelineProductPurchaseKind ===
+      DbAtomEmployeePipelineProductPurchaseKindEnum.Renewal
+  )
+);
+
+type WorkProjectOption = {
+  id: number;
+  name: string;
+  companyName: string;
+  departmentName: string;
+  startTime: string;
+  endTime: string;
+};
+
+const workProjectSnapshotKey = "cache.work.project.snapshot";
+const selectedRenewalProjectId = ref<number | null>(null);
+
+const renewalProjectOptions = computed<WorkProjectOption[]>(() => {
+  const companyName = (crmPipelinePipelineDetailViewObj.company.managerCompanyName || "").trim();
+  if (!companyName) return [];
+  let source = mockDataSets.workProjects as WorkProjectOption[];
+  const raw = localStorage.getItem(workProjectSnapshotKey);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as WorkProjectOption[];
+      if (Array.isArray(parsed)) {
+        source = parsed as WorkProjectOption[];
+      }
+    } catch {
+      // fallback to mock data
+    }
+  }
+  return source.filter((item) => item.companyName === companyName);
+});
+
+const selectRenewalProject = (id: number) => {
+  selectedRenewalProjectId.value = id;
+};
+
+const pipelineTab = ref<"development" | "customer" | "records">("development");
+const canCloseDeal = computed(() => {
+  const status = autoPipelineStatus.value;
+  return status === DbAtomPipelineStatusEnum.Business70Percent;
+});
+const pipelineStatusPercent = computed(() => {
+  const status = autoPipelineStatus.value;
+  if (status === DbAtomPipelineStatusEnum.Business10Percent) return 10;
+  if (status === DbAtomPipelineStatusEnum.Business30Percent) return 30;
+  if (status === DbAtomPipelineStatusEnum.Business70Percent) return 70;
+  if (status === DbAtomPipelineStatusEnum.Business100Percent) return 100;
+  return 0;
+});
+const isStageStatusSaved = ref(false);
+const stageStatusLocked = computed(() => isPipelineLocked.value || isStageStatusSaved.value);
+const isCloseDealPanelOpen = ref(false);
+const closeDealFiles = ref<File[]>([]);
+const handleCloseDealFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  if (!target?.files) {
+    closeDealFiles.value = [];
+    return;
+  }
+  closeDealFiles.value = Array.from(target.files);
+};
+const handleCloseDealNext = () => {
+  if (!closeDealFiles.value.length) return;
+  handleUpdatePipelineStatus(DbAtomPipelineStatusEnum.Business100Percent);
+};
 const isPipelineLocked = computed(() =>
   [
     DbAtomPipelineStatusEnum.Business100Percent,
@@ -744,7 +866,7 @@ const isPotentialPipeline = computed(() =>
 
 const syncPipelineTab = () => {
   if (pipelineTab.value === "customer") return;
-  pipelineTab.value = isPotentialPipeline.value ? "potential" : "formal";
+  pipelineTab.value = isPotentialPipeline.value ? "development" : "customer";
 };
 
 const shouldSyncAutoStatus = (nextStatus: DbAtomPipelineStatusEnum | null) => {
@@ -812,6 +934,59 @@ const pocReasons = [
   "產品功能不符合需求",
   "其他",
 ];
+
+const northCities = new Set<DbAtomCityEnum>([
+  DbAtomCityEnum.Taipei,
+  DbAtomCityEnum.NewTaipei,
+  DbAtomCityEnum.Keelung,
+  DbAtomCityEnum.Taoyuan,
+  DbAtomCityEnum.HsinchuCity,
+  DbAtomCityEnum.HsinchuCounty,
+  DbAtomCityEnum.Yilan,
+]);
+const centralCities = new Set<DbAtomCityEnum>([
+  DbAtomCityEnum.Taichung,
+  DbAtomCityEnum.Miaoli,
+  DbAtomCityEnum.Changhua,
+  DbAtomCityEnum.Nantou,
+  DbAtomCityEnum.Yunlin,
+]);
+const southCities = new Set<DbAtomCityEnum>([
+  DbAtomCityEnum.Kaohsiung,
+  DbAtomCityEnum.Tainan,
+  DbAtomCityEnum.Pingtung,
+  DbAtomCityEnum.Chiayi,
+  DbAtomCityEnum.ChiayiCounty,
+  DbAtomCityEnum.Penghu,
+  DbAtomCityEnum.Kinmen,
+  DbAtomCityEnum.Lienchiang,
+]);
+const getRegionLabelByCity = (city: DbAtomCityEnum | null) => {
+  if (!city) return "未設定";
+  if (northCities.has(city)) return "北區";
+  if (centralCities.has(city)) return "中區";
+  if (southCities.has(city)) return "南區";
+  return getCityLabel(city);
+};
+const companyRegionLabel = computed(() =>
+  getRegionLabelByCity(crmPipelinePipelineDetailViewObj.company.atomCity ?? null)
+);
+const pipelineProjectTypeLabel = computed(() =>
+  crmPipelinePipelineDetailViewObj.employeePipelineProductList.length > 1 ? "混合案" : "單一服務案"
+);
+const pipelineServiceItemLabel = computed(() =>
+  crmPipelinePipelineDetailViewObj.employeePipelineProductList[0]?.managerProductMainKindName || "-"
+);
+const pipelineProductLabel = computed(() =>
+  crmPipelinePipelineDetailViewObj.employeePipelineProductList[0]?.managerProductName || "-"
+);
+const companyShortNameLabel = computed(() => "未設定");
+const companyEnglishNameLabel = computed(() => "未設定");
+const companyRelationLabel = computed(() => "未設定");
+const companyUpdatedLabel = computed(() => lastUpdatedLabel.value);
+
+const showContacterModal = ref(false);
+const editingContacter = ref<CrmPipelinePipelineDetailContacterItemMdl | null>(null);
 
 const isDepartmentManager = computed(() => {
   const role = employeeInfoStore.effectiveRoleName || "";
@@ -1121,9 +1296,10 @@ const getData = async () => {
           employeePipelineBillNoTaxAmount: item.employeePipelineBillNoTaxAmount,
           employeePipelineBillRemark: item.employeePipelineBillRemark,
           employeePipelineBillStatus: item.employeePipelineBillStatus,
+          employeePipelineBillIsPreIssued: item.employeePipelineBillIsPreIssued ?? false,
+          employeePipelineBillExecuteDate: item.employeePipelineBillExecuteDate ?? null,
         }) satisfies CrmPipelinePipelineDetailBillItemMdl
     ) ?? [];
-  crmPipelinePipelineDetailViewObj.employeePipelineBillList = responseData.employeePipelineBillList;
   crmPipelinePipelineDetailViewObj.employeePipelineDueList = responseData.employeePipelineDueList;
   crmPipelinePipelineDetailViewObj.employeePipelineSalerRegionID =
     responseData.employeePipelineSalerRegionID;
@@ -1284,41 +1460,6 @@ const handleReassignSalerCancel = () => {
 //#region 【基本資訊】區塊事件處理
 /** 是否顯示【新增專案】彈跳視窗 */
 const showTransferProjectModal = ref(false);
-
-/** 處理商機狀態更新 */
-const handleBasicInfoUpdateStatus = () => {
-  const currentStatus = crmPipelinePipelineDetailViewObj.atomPipelineStatus;
-  const nextStatus = getNextPipelineStatus(currentStatus);
-  const nextStatusText = getPipelineButtonText(currentStatus);
-
-  if (!nextStatus || !nextStatusText) return;
-  if (!validateStageStatusBeforeUpdate(nextStatus)) return;
-
-  showConfirmDialog({
-    title: "確認商機狀態變更",
-    message: `確定要將商機狀態更新為「${nextStatusText}」嗎？`,
-    onConfirm: () => handleUpdatePipelineStatus(nextStatus),
-  });
-};
-
-/** 顯示[新增專案]彈跳視窗 */
-const handleBasicInfoTransferProject = () => {
-  showTransferProjectModal.value = true;
-};
-
-/** 處理[商機失敗]按鈕 */
-const handleBasicInfoFailPipeline = () => {
-  showConfirmDialog({
-    title: "確認商機失敗",
-    message: "確定要將此商機標記為「商機失敗」嗎？此操作將結束商機流程。",
-    onConfirm: handleFailPipeline,
-  });
-};
-
-/** 處理基本資訊區塊的轉指派業務 */
-const handleBasicInfoReassignSaler = () => {
-  showReassignSalerModal.value = true;
-};
 
 /** 處理[新增專案]確認 */
 const handleTransferProjectDialogConfirm = async (
@@ -1561,6 +1702,53 @@ const handleTrackingModalCancel = () => {
 };
 //#endregion
 
+//#region 【窗口】區塊事件處理
+const handleAddContacter = () => {
+  editingContacter.value = null;
+  showContacterModal.value = true;
+};
+
+const handleEditContacter = (contacter: CrmPipelinePipelineDetailContacterItemMdl) => {
+  editingContacter.value = { ...contacter };
+  showContacterModal.value = true;
+};
+
+const handleDeleteContacter = (contacterId: number) => {
+  const index = crmPipelinePipelineDetailViewObj.contacterList.findIndex(
+    (item) => item.managerContacterID === contacterId
+  );
+  if (index >= 0) {
+    crmPipelinePipelineDetailViewObj.contacterList.splice(index, 1);
+  }
+};
+
+const handleContacterModalConfirm = (contacter: CrmPipelinePipelineDetailContacterItemMdl) => {
+  const list = crmPipelinePipelineDetailViewObj.contacterList;
+  const existingIndex = list.findIndex((item) => item.managerContacterID === contacter.managerContacterID);
+  if (contacter.employeePipelineContacterIsPrimary) {
+    list.forEach((item) => {
+      item.employeePipelineContacterIsPrimary = false;
+    });
+  }
+
+  if (editingContacter.value && existingIndex >= 0) {
+    list[existingIndex] = { ...list[existingIndex], ...contacter };
+  } else if (existingIndex === -1) {
+    list.push(contacter);
+  } else {
+    list[existingIndex] = { ...list[existingIndex], ...contacter };
+  }
+
+  showContacterModal.value = false;
+  editingContacter.value = null;
+};
+
+const handleContacterModalCancel = () => {
+  showContacterModal.value = false;
+  editingContacter.value = null;
+};
+//#endregion
+
 //#region 【產品】區塊事件處理
 /** 是否顯示【新增產品】彈跳視窗 */
 const showProductModal = ref(false);
@@ -1751,6 +1939,10 @@ const handleEditMultipleBillsConfirm = async (data: {
           employeePipelineBillBillTime: formatToServerDateStartISO8(
             bill.employeePipelineBillBillTime
           ),
+          employeePipelineBillIsPreIssued: bill.employeePipelineBillIsPreIssued,
+          employeePipelineBillExecuteDate: bill.employeePipelineBillExecuteDate
+            ? formatToServerDateStartISO8(bill.employeePipelineBillExecuteDate)
+            : null,
           employeePipelineBillNoTaxAmount: bill.employeePipelineBillNoTaxAmount,
           employeePipelineBillRemark: bill.employeePipelineBillRemark ?? null,
         }) satisfies MbsCrmPplHttpUpdateManyEmployeePipelineBillReqItemMdl
@@ -2012,6 +2204,18 @@ onMounted(() => {
 });
 
 watch(
+  () => pipelineTab.value,
+  (tab) => {
+    const titleMap: Record<string, string> = {
+      development: "商機開發",
+      customer: "客戶資訊",
+    };
+    setModuleTitle(titleMap[tab] ?? "商機開發");
+  },
+  { immediate: true }
+);
+
+watch(
   () => ({ ...stageStatusNotes }),
   () => {
     persistStageNotes();
@@ -2042,6 +2246,10 @@ watch(
   }
 );
 
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
+
 //#endregion
 </script>
 
@@ -2070,24 +2278,24 @@ watch(
       <div class="flex gap-3">
         <button
           class="tab-btn"
-          :class="{ active: pipelineTab === 'potential' }"
-          @click="pipelineTab = 'potential'"
-        >
-          潛在商機
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: pipelineTab === 'formal' }"
-          @click="pipelineTab = 'formal'"
-        >
-          正式商機
-        </button>
-        <button
-          class="tab-btn"
           :class="{ active: pipelineTab === 'customer' }"
           @click="pipelineTab = 'customer'"
         >
-          客戶名稱
+          客戶資訊
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: pipelineTab === 'development' }"
+          @click="pipelineTab = 'development'"
+        >
+          商機開發
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: pipelineTab === 'records' }"
+          @click="pipelineTab = 'records'"
+        >
+          產品 / 發票 / 履約
         </button>
       </div>
       <!-- 【指派業務記錄】區塊 -->
@@ -2105,171 +2313,367 @@ watch(
         @reassign-saler="handleReassignSaler"
       />
 
-      <!-- 【基本資訊】區塊 -->
-      <PipelineBasicInfoSection
-        :atom-pipeline-status="crmPipelinePipelineDetailViewObj.atomPipelineStatus"
-        :display-pipeline-status="autoPipelineStatus"
-        :company="crmPipelinePipelineDetailViewObj.company"
-        :booking-code="crmPipelinePipelineDetailViewObj.bookingCode"
-        :employee-pipeline-saler-employee-name="
-          crmPipelinePipelineDetailViewObj.employeePipelineSalerEmployeeName
-        "
-        :readonly="isPipelineLocked"
-        @update-status="handleBasicInfoUpdateStatus"
-        @transfer-project="handleBasicInfoTransferProject"
-        @fail-pipeline="handleBasicInfoFailPipeline"
-        @reassign-saler="handleBasicInfoReassignSaler"
-        @update-booking-code="handleUpdateBookingCode"
-      />
-
-      <div v-if="pipelineTab === 'potential'" class="bg-white rounded-lg p-6 flex flex-col gap-4">
-        <div class="flex items-center justify-between">
-          <h2 class="subtitle">商機經營紀錄</h2>
-          <span class="text-xs text-gray-500">最後更新：{{ lastUpdatedLabel }}</span>
-        </div>
-        <details class="group rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3">
-          <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-blue-700">
-            <span>10% / 30% / 70% 條件說明</span>
-            <svg
-              class="h-4 w-4 transition-transform group-open:rotate-180"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </summary>
-          <ul class="mt-3 flex flex-col gap-2">
-            <li
-              v-for="rule in stageRuleSummaries"
-              :key="rule.status"
-              class="flex items-start gap-3 rounded-lg border border-dashed border-gray-300 bg-white p-3"
-            >
-              <div class="mt-0.5 h-2 w-2 rounded-full bg-blue-500"></div>
-              <div>
-                <div class="text-sm font-semibold text-blue-700">{{ rule.title }}</div>
-                <p class="text-xs text-gray-600 mt-1 leading-relaxed">
-                  {{ rule.description }}
-                </p>
-              </div>
-            </li>
-          </ul>
-        </details>
-        <div>
-          <table class="table-base table-fixed table-sticky w-full min-w-[720px]">
-            <thead class="bg-gray-800 text-white">
-              <tr>
-                <th class="text-start w-16">條件</th>
-                <th class="text-start w-44">狀態</th>
-                <th class="text-start w-56">備註</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="field in stageStatusFields"
-                :key="field.key"
-                class="border border-gray-300"
-              >
-                <td class="text-start font-semibold text-gray-700">{{ field.label }}</td>
-                <td class="text-start">
-                  <div class="flex flex-wrap gap-2">
-                    <button
-                      v-for="option in pipelineStageCheckOptions"
-                      :key="option.value"
-                      type="button"
-                      class="rounded-md border px-2 py-1 text-xs font-semibold transition"
-                      :class="
-                        stageStatusForm[field.key] === option.value
-                          ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
-                          : 'border-gray-200 text-gray-600 hover:border-cyan-300'
-                      "
-                      :disabled="isPipelineLocked"
-                      @click="
-                        isPipelineLocked
-                          ? null
-                          : (stageStatusForm[field.key] =
-                              stageStatusForm[field.key] === option.value ? null : option.value)
-                      "
-                    >
-                      {{ getStageOptionLabel(field.key, option.label) }}
-                    </button>
-                  </div>
-                </td>
-                <td class="text-start">
-                  <template v-if="field.key === 'businessPresentationStatus'">
-                    <div
-                      v-if="stageStatusForm[field.key] === DbEmployeePipelineStageCheckEnum.Confirmed"
-                      class="grid grid-cols-1 gap-2 md:grid-cols-2"
-                    >
-                      <div class="md:col-span-2">
-                        <label class="form-label">產品經理</label>
-                        <select
-                          v-model="presentationDetail.manager"
-                          class="select-box"
-                          :disabled="isPipelineLocked"
-                        >
-                          <option value="">請選擇</option>
-                          <option value="李子涵">李子涵</option>
-                          <option value="盧彥伶">盧彥伶</option>
-                          <option value="施祥倫">施祥倫</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="form-label">簡報日期</label>
-                        <input
-                          v-model="presentationDetail.date"
-                          type="date"
-                          class="input-box"
-                          :disabled="isPipelineLocked"
-                        />
-                      </div>
-                      <div>
-                        <label class="form-label">時段</label>
-                        <select
-                          v-model="presentationDetail.timeSlot"
-                          class="select-box"
-                          :disabled="isPipelineLocked"
-                        >
-                          <option value="">請選擇</option>
-                          <option v-for="slot in presentationTimeSlots" :key="slot" :value="slot">
-                            {{ slot }}
-                          </option>
-                        </select>
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="form-label">簡報內容</label>
-                        <input
-                          v-model="presentationDetail.summary"
-                          type="text"
-                          class="input-box"
-                          placeholder="輸入簡報重點"
-                          :disabled="isPipelineLocked"
-                        />
-                      </div>
+      <div
+        v-if="pipelineTab === 'development'"
+        data-annotation-scope="crm-pipeline-development"
+        class="flex flex-col gap-4"
+      >
+        <div class="bg-white rounded-lg p-6 flex flex-col gap-4">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex flex-col gap-2 flex-1">
+              <h2 class="subtitle">商機經營紀錄</h2>
+              <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div class="flex flex-col gap-2">
+                  <input
+                    v-model="crmPipelinePipelineDetailViewObj.bookingCode"
+                    type="text"
+                    class="input-box"
+                    :disabled="isPipelineLocked"
+                    placeholder="請輸入 Booking Code"
+                  />
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm font-medium text-gray-600">商機狀態</span>
+                      <span
+                        v-if="pipelineStatusPercent === 0"
+                        class="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium bg-sky-50 text-sky-700"
+                      >
+                        {{ displayPipelineStatusLabel }}
+                      </span>
                     </div>
+                    <div v-if="pipelineStatusPercent > 0" class="flex min-w-[200px] items-center gap-3">
+                      <div class="h-3 w-full rounded-full bg-gray-200">
+                        <div
+                          class="h-3 rounded-full bg-cyan-500 transition-all"
+                          :style="{ width: `${pipelineStatusPercent}%` }"
+                        ></div>
+                      </div>
+                      <span class="text-sm font-medium text-gray-600 min-w-[42px]">
+                        {{ pipelineStatusPercent }}%
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    class="btn-submit text-sm px-5 py-2"
+                    type="button"
+                    :disabled="isPipelineLocked || !canCloseDeal"
+                    :title="canCloseDeal ? '' : '需達 70% 才能成案'"
+                    @click="isCloseDealPanelOpen = !isCloseDealPanelOpen"
+                  >
+                    成案
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="text-xs text-gray-500">最後更新：{{ lastUpdatedLabel }}</span>
+          </div>
+          <div
+            v-if="isCloseDealPanelOpen"
+            class="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3"
+          >
+            <div class="flex items-center justify-between">
+              <div class="text-sm font-semibold text-gray-700">上傳訂單或佐證文件</div>
+            </div>
+            <div class="mt-2 flex flex-col gap-2">
+              <label class="btn-update cursor-pointer text-xs" title="支援多檔上傳">
+                上傳文件
+                <input type="file" class="hidden" multiple @change="handleCloseDealFileChange" />
+              </label>
+              <div v-if="closeDealFiles.length > 0" class="flex flex-wrap gap-2">
+                <span
+                  v-for="file in closeDealFiles"
+                  :key="file.name"
+                  class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                >
+                  {{ file.name }}
+                </span>
+              </div>
+              <div v-if="closeDealFiles.length > 0" class="flex justify-center">
+                <button
+                  class="btn-submit"
+                  type="button"
+                  :disabled="isPipelineLocked"
+                  @click="handleCloseDealNext"
+                >
+                  轉成專案
+                </button>
+              </div>
+              <div v-else class="text-xs text-gray-500">尚未選擇檔案</div>
+            </div>
+          </div>
+          <details
+            v-if="!isRenewalPipeline"
+            class="group rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3"
+          >
+            <summary class="flex cursor-pointer items-center justify-between text-sm font-semibold text-gray-600">
+              <span>10% / 30% / 70% 條件說明</span>
+              <svg
+                class="h-4 w-4 transition-transform group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </summary>
+            <ul class="mt-3 flex flex-col gap-2">
+              <li
+                v-for="rule in stageRuleSummaries"
+                :key="rule.status"
+                class="flex items-start gap-3 rounded-lg border border-dashed border-gray-300 bg-white p-3"
+              >
+                <div class="mt-0.5 h-2 w-2 rounded-full bg-blue-500"></div>
+                <div>
+                  <div class="text-sm font-semibold text-blue-700">{{ rule.title }}</div>
+                  <p class="text-xs text-gray-600 mt-1 leading-relaxed">
+                    {{ rule.description }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </details>
+          <div v-if="!isRenewalPipeline">
+            <table class="table-base table-fixed table-sticky w-full min-w-[720px]">
+              <thead class="bg-gray-800 text-white">
+                <tr>
+                  <th class="text-start w-16">條件</th>
+                  <th class="text-start w-44">狀態</th>
+                  <th class="text-start w-56">備註</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="field in stageStatusFields"
+                  :key="field.key"
+                  class="border border-gray-300"
+                >
+                  <td class="text-start font-semibold text-gray-700">{{ field.label }}</td>
+                  <td class="text-start">
+                    <div v-if="field.key === 'businessNegotiationStatus'" class="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        class="rounded-md border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :class="
+                          stageStatusForm.businessNegotiationStatus ===
+                          DbEmployeePipelineStageCheckEnum.Unconfirmed
+                            ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                            : 'border-gray-200 text-gray-600 hover:border-cyan-300'
+                        "
+                        :disabled="stageStatusLocked"
+                        @click="
+                          stageStatusLocked
+                            ? null
+                            : setNegotiationStatus(DbEmployeePipelineStageCheckEnum.Unconfirmed, null)
+                        "
+                      >
+                        未確認
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-md border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :class="
+                          stageStatusForm.businessNegotiationStatus ===
+                            DbEmployeePipelineStageCheckEnum.Confirmed &&
+                          negotiationProgress === 'in_progress'
+                            ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                            : 'border-gray-200 text-gray-600 hover:border-cyan-300'
+                        "
+                        :disabled="stageStatusLocked"
+                        @click="
+                          stageStatusLocked
+                            ? null
+                            : setNegotiationStatus(
+                                DbEmployeePipelineStageCheckEnum.Confirmed,
+                                'in_progress'
+                              )
+                        "
+                      >
+                        議價中
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-md border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :class="
+                          stageStatusForm.businessNegotiationStatus ===
+                            DbEmployeePipelineStageCheckEnum.Confirmed &&
+                          negotiationProgress === 'completed'
+                            ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                            : 'border-gray-200 text-gray-600 hover:border-cyan-300'
+                        "
+                        :disabled="stageStatusLocked"
+                        @click="
+                          stageStatusLocked
+                            ? null
+                            : setNegotiationStatus(
+                                DbEmployeePipelineStageCheckEnum.Confirmed,
+                                'completed'
+                              )
+                        "
+                      >
+                        議價完成
+                      </button>
+                    </div>
+                    <div v-else class="flex flex-wrap gap-2">
+                      <button
+                        v-for="option in pipelineStageCheckOptions"
+                        :key="option.value"
+                        type="button"
+                        class="rounded-md border px-2 py-1 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        :class="
+                          stageStatusForm[field.key] === option.value
+                            ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                            : 'border-gray-200 text-gray-600 hover:border-cyan-300'
+                        "
+                        :disabled="stageStatusLocked"
+                        @click="
+                          stageStatusLocked
+                            ? null
+                            : (stageStatusForm[field.key] =
+                                stageStatusForm[field.key] === option.value ? null : option.value)
+                        "
+                      >
+                        {{ getStageOptionLabel(field.key, option.label) }}
+                      </button>
+                    </div>
+                  </td>
+                  <td class="text-start">
+                    <template v-if="field.key === 'businessPresentationStatus'">
+                      <div
+                        v-if="stageStatusForm[field.key] === DbEmployeePipelineStageCheckEnum.Confirmed"
+                        class="grid grid-cols-1 gap-2 md:grid-cols-2"
+                      >
+                        <div class="md:col-span-2">
+                        <label class="form-label" :class="{ 'text-gray-400': stageStatusLocked }">產品經理</label>
+                          <select
+                            v-model="presentationDetail.manager"
+                          class="select-box disabled:opacity-50 disabled:cursor-not-allowed"
+                          :disabled="stageStatusLocked"
+                          >
+                            <option value="">請選擇</option>
+                            <option value="李子涵">李子涵</option>
+                            <option value="盧彥伶">盧彥伶</option>
+                            <option value="施祥倫">施祥倫</option>
+                          </select>
+                        </div>
+                        <div>
+                        <label class="form-label" :class="{ 'text-gray-400': stageStatusLocked }">簡報日期</label>
+                          <input
+                            v-model="presentationDetail.date"
+                            type="date"
+                          class="input-box disabled:opacity-50 disabled:cursor-not-allowed"
+                          :disabled="stageStatusLocked"
+                          />
+                        </div>
+                        <div>
+                        <label class="form-label" :class="{ 'text-gray-400': stageStatusLocked }">時段</label>
+                          <select
+                            v-model="presentationDetail.timeSlot"
+                          class="select-box disabled:opacity-50 disabled:cursor-not-allowed"
+                          :disabled="stageStatusLocked"
+                          >
+                            <option value="">請選擇</option>
+                            <option v-for="slot in presentationTimeSlots" :key="slot" :value="slot">
+                              {{ slot }}
+                            </option>
+                          </select>
+                        </div>
+                        <div class="md:col-span-2">
+                        <label class="form-label" :class="{ 'text-gray-400': stageStatusLocked }">簡報內容</label>
+                          <input
+                            v-model="presentationDetail.summary"
+                            type="text"
+                          class="input-box disabled:opacity-50 disabled:cursor-not-allowed"
+                            placeholder="輸入簡報重點"
+                          :disabled="stageStatusLocked"
+                          />
+                        </div>
+                      </div>
+                      <input
+                        v-else
+                        v-model="stageStatusNotes[field.key]"
+                        type="text"
+                          class="input-box disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="請輸入備註"
+                        :disabled="isPipelineLocked"
+                      />
+                    </template>
                     <input
                       v-else
                       v-model="stageStatusNotes[field.key]"
                       type="text"
-                      class="input-box"
+                      class="input-box disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="請輸入備註"
-                      :disabled="isPipelineLocked"
+                      :disabled="stageStatusLocked"
                     />
-                  </template>
-                  <input
-                    v-else
-                    v-model="stageStatusNotes[field.key]"
-                    type="text"
-                    class="input-box"
-                    placeholder="請輸入備註"
-                    :disabled="isPipelineLocked"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="mt-4 flex justify-center">
+              <button
+                class="btn-submit w-full max-w-[720px]"
+                type="button"
+                @click="isStageStatusSaved = !isStageStatusSaved"
+              >
+                {{ isStageStatusSaved ? "編輯" : "儲存" }}
+              </button>
+            </div>
+          </div>
+          <div
+            v-else
+            class="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-3"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-semibold text-gray-700">客戶既有專案</p>
+              <span class="text-xs text-gray-500">選擇續約對應專案</span>
+            </div>
+            <div v-if="renewalProjectOptions.length === 0" class="text-sm text-gray-500 py-4">
+              此客戶尚無既有專案
+            </div>
+            <div v-else class="mt-3 overflow-x-auto">
+              <table class="table-base table-fixed table-sticky w-full min-w-[720px]">
+                <thead class="bg-gray-800 text-white">
+                  <tr>
+                    <th class="text-start w-48">專案名稱</th>
+                    <th class="text-start w-24">部門</th>
+                    <th class="text-start w-40">起訖時間</th>
+                    <th class="text-center w-24">選擇</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="project in renewalProjectOptions"
+                    :key="project.id"
+                    class="border border-gray-300"
+                  >
+                    <td class="text-start">{{ project.name }}</td>
+                    <td class="text-start">{{ project.departmentName || "-" }}</td>
+                    <td class="text-start">
+                      {{ project.startTime || "-" }} ~ {{ project.endTime || "-" }}
+                    </td>
+                    <td class="text-center">
+                      <button
+                        class="btn-update text-xs"
+                        type="button"
+                        @click="selectRenewalProject(project.id)"
+                      >
+                        {{ selectedRenewalProjectId === project.id ? "已選" : "選擇" }}
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <div class="border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+        <div class="border border-gray-200 rounded-xl bg-white p-4 flex flex-col gap-3">
           <div class="flex items-center justify-between">
             <div class="flex flex-col">
               <h2 class="subtitle">POC</h2>
@@ -2388,7 +2792,7 @@ watch(
                       v-if="isDepartmentManager"
                       v-model="item.employeeName"
                       class="select-box"
-                      :disabled="isPipelineLocked"
+                      :disabled="stageStatusLocked"
                     >
                       <option value="">請選擇</option>
                       <option
@@ -2407,7 +2811,7 @@ watch(
                     <input
                       v-model="item.progress"
                       type="text"
-                      class="input-box"
+                      class="input-box disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="給部門經理的備註"
                       :disabled="isPipelineLocked"
                     />
@@ -2517,83 +2921,101 @@ watch(
         </div>
       </div>
 
-      <!-- 【客戶】區塊 -->
-      <PipelineCompanySection
+      <div
         v-if="pipelineTab === 'customer'"
-        :company="crmPipelinePipelineDetailViewObj.company"
-        :readonly="true"
-      />
+        data-annotation-scope="crm-pipeline-customer"
+        class="flex flex-col gap-4"
+      >
+        <!-- 【客戶】區塊 -->
+        <PipelineCompanySection
+          :company="crmPipelinePipelineDetailViewObj.company"
+          :company-region-label="companyRegionLabel"
+          :booking-code="crmPipelinePipelineDetailViewObj.bookingCode"
+          :company-short-name="companyShortNameLabel"
+          :company-english-name="companyEnglishNameLabel"
+          :company-relation-label="companyRelationLabel"
+          :updated-at-label="companyUpdatedLabel"
+          :readonly="false"
+        />
 
-      <!-- 【窗口】區塊 -->
-      <PipelineContacterSection
-        v-if="pipelineTab === 'formal'"
-        :contacter-list="crmPipelinePipelineDetailViewObj.contacterList"
-        :readonly="true"
-      />
+        <!-- 【窗口】區塊 -->
+        <PipelineContacterSection
+          :contacter-list="crmPipelinePipelineDetailViewObj.contacterList"
+          :readonly="isPipelineLocked"
+          :enable-edit="true"
+          @add-contacter="handleAddContacter"
+          @edit-contacter="handleEditContacter"
+          @delete-contacter="handleDeleteContacter"
+        />
+      </div>
 
-      <!-- 【產品】區塊 -->
-      <PipelineProductSection
-        v-if="pipelineTab === 'formal'"
-        :product-list="crmPipelinePipelineDetailViewObj.employeePipelineProductList"
-        :readonly="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.TransferredToBusiness ||
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.TransferredToProject ||
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.BusinessFailed
-        "
-        @add-product="handleAddProduct"
-        @edit-product="handleEditProduct"
-        @delete-product="handleDeleteProduct"
-      />
+      <div
+        v-if="pipelineTab === 'records'"
+        data-annotation-scope="crm-pipeline-records"
+        class="flex flex-col gap-4"
+      >
+        <!-- 【產品】區塊 -->
+        <PipelineProductSection
+          :product-list="crmPipelinePipelineDetailViewObj.employeePipelineProductList"
+          :readonly="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.TransferredToBusiness ||
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.TransferredToProject ||
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.BusinessFailed
+          "
+          @add-product="handleAddProduct"
+          @edit-product="handleEditProduct"
+          @delete-product="handleDeleteProduct"
+        />
 
-      <!-- 【商機開發記錄】區塊 -->
-      <!-- 【發票記錄】區塊 -->
-      <PipelineBillSection
-        v-if="pipelineTab === 'formal' && shouldShowBillSection"
-        :bill-list="crmPipelinePipelineDetailViewObj.employeePipelineBillList"
-        :total-amount="totalProductClosingPrice"
-        :period-count="billPeriodCount"
-        :can-edit-multiple-bills="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus !==
-          DbAtomPipelineStatusEnum.TransferredToProject
-        "
-        :show-confirm-button="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-          DbAtomPipelineStatusEnum.TransferredToProject
-        "
-        :show-notify-button="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-          DbAtomPipelineStatusEnum.TransferredToProject
-        "
-        :readonly="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.TransferredToProject ||
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.BusinessFailed
-        "
-        @edit-multiple-bills="handleEditMultipleBills"
-        @notify-bill-issue="handleNotifyBillIssue"
-        @confirm-bill-issue="handleConfirmBillIssue"
-      />
+        <!-- 【發票記錄】區塊 -->
+        <PipelineBillSection
+          v-if="shouldShowBillSection"
+          :bill-list="crmPipelinePipelineDetailViewObj.employeePipelineBillList"
+          :total-amount="totalProductClosingPrice"
+          :period-count="billPeriodCount"
+          :can-edit-multiple-bills="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus !==
+            DbAtomPipelineStatusEnum.TransferredToProject
+          "
+          :show-confirm-button="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+            DbAtomPipelineStatusEnum.TransferredToProject
+          "
+          :show-notify-button="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+            DbAtomPipelineStatusEnum.TransferredToProject
+          "
+          :readonly="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.TransferredToProject ||
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.BusinessFailed
+          "
+          @edit-multiple-bills="handleEditMultipleBills"
+          @notify-bill-issue="handleNotifyBillIssue"
+          @confirm-bill-issue="handleConfirmBillIssue"
+        />
 
-      <!-- 【履約期限通知】區塊 -->
-      <PipelineDueSection
-        v-if="pipelineTab === 'formal' && showDueSection"
-        :due-list="crmPipelinePipelineDetailViewObj.employeePipelineDueList"
-        :readonly="
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.TransferredToBusiness ||
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.TransferredToProject ||
-          crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
-            DbAtomPipelineStatusEnum.BusinessFailed
-        "
-        @add-due="handleAddDue"
-        @edit-due="handleEditDue"
-        @delete-due="handleDeleteDue"
-      />
+        <!-- 【履約期限通知】區塊 -->
+        <PipelineDueSection
+          v-if="showDueSection"
+          :due-list="crmPipelinePipelineDetailViewObj.employeePipelineDueList"
+          :readonly="
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.TransferredToBusiness ||
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.TransferredToProject ||
+            crmPipelinePipelineDetailViewObj.atomPipelineStatus ===
+              DbAtomPipelineStatusEnum.BusinessFailed
+          "
+          @add-due="handleAddDue"
+          @edit-due="handleEditDue"
+          @delete-due="handleDeleteDue"
+        />
+      </div>
     </div>
 
     <!-- 成功提示 Toast -->
@@ -2628,6 +3050,11 @@ watch(
     <!-- 基本資訊-【新增專案】彈跳視窗 -->
     <TransferProjectModal
       :show="showTransferProjectModal"
+      :company-region-label="companyRegionLabel"
+      :company-name="crmPipelinePipelineDetailViewObj.company.managerCompanyName"
+      :project-type-label="pipelineProjectTypeLabel"
+      :service-item-label="pipelineServiceItemLabel"
+      :product-label="pipelineProductLabel"
       :saler-employee-i-d="crmPipelinePipelineDetailViewObj.employeePipelineSalerEmployeeID"
       :saler-employee-name="crmPipelinePipelineDetailViewObj.employeePipelineSalerEmployeeName"
       :saler-region-i-d="crmPipelinePipelineDetailViewObj.employeePipelineSalerRegionID"
@@ -2644,6 +3071,15 @@ watch(
       :product="currentEditProduct"
       @confirm="handleProductModalConfirm"
       @cancel="handleProductModalCancel"
+    />
+
+    <!-- 窗口-【附加/編輯窗口】彈跳視窗 -->
+    <PipelineContacterModal
+      :show="showContacterModal"
+      :manager-company-i-d="crmPipelinePipelineDetailViewObj.company.managerCompanyID"
+      :contacter="editingContacter"
+      @confirm="handleContacterModalConfirm"
+      @cancel="handleContacterModalCancel"
     />
 
     <!-- 商機開發記錄-【附加/編輯商機開發記錄】彈跳視窗 -->

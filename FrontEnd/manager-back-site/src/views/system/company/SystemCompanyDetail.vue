@@ -434,9 +434,9 @@ const validateLocationField = () => {
     sysComLocationValidObj.managerCompanyLocationName = true;
   }
 
-  // 電話：可空，但若有輸入要符合格式 (02-123-4567 或 02-1234-5678)
+  // 電話：可空，但若有輸入要符合格式 (02-123-4567 或 02-1234-5678，可加 #分機)
   const tel = sysComLocationListItemObj.managerCompanyLocationTelephone?.trim();
-  const phonePattern = /^(0\d{1,2}-\d{3,4}-\d{3,4})$/;
+  const phonePattern = /^(0\d{1,2}-\d{3,4}-\d{3,4})(#\d{1,5})?$/;
   if (tel && !phonePattern.test(tel)) {
     sysComLocationValidObj.managerCompanyLocationTelephone = false;
     isValid = false;

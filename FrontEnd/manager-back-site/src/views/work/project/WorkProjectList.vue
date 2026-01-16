@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //#region 引入
- import { ref, reactive, onMounted, defineAsyncComponent, computed } from "vue";
+import { ref, reactive, onMounted, defineAsyncComponent, computed, watch, onBeforeUnmount } from "vue";
 // Enums / 常數
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 import { DbAtomEmployeeProjectStatusEnum } from "@/constants/DbAtomEmployeeProjectStatusEnum";
@@ -11,6 +11,7 @@ import { useTokenStore } from "@/stores/token";
 // Composables
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useAuth } from "@/composables/useAuth";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 // Services
 import type {
   MbsWrkPrjHttpGetManyProjectReqMdl,
@@ -41,6 +42,7 @@ import router from "@/router";
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -438,6 +440,18 @@ onMounted(() => {
     pocRefreshTick.value += 1;
   });
 });
+
+watch(
+  () => listMode.value,
+  (mode) => {
+    setModuleTitle(mode === "poc" ? "POC" : "專案");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
 //#endregion
 </script>
 
@@ -475,7 +489,7 @@ onMounted(() => {
 
     <div class="flex flex-col bg-white rounded-lg p-6 gap-3 flex-1">
       <div class="flex-1">
-        <table v-if="listMode === 'project'" class="table-base table-fixed table-sticky w-full min-w-[720px]">
+        <table v-if="listMode === 'project'" data-annotation-scope="project" class="table-base table-fixed table-sticky w-full min-w-[720px]">
           <thead class="sticky top-0 bg-white z-10">
             <tr>
               <th class="text-start w-40">專案名稱</th>
@@ -501,6 +515,7 @@ onMounted(() => {
                 :role="canViewProject ? 'button' : undefined"
                 :tabindex="canViewProject ? 0 : undefined"
                 @click="handleRowClick(item.employeeProjectID)"
+                @mousedown.left="handleRowClick(item.employeeProjectID)"
                 @keydown.enter="handleRowClick(item.employeeProjectID)"
               >
                 <td class="text-start">
@@ -529,7 +544,7 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <table v-else class="table-base table-fixed table-sticky w-full min-w-[960px]">
+        <table v-else data-annotation-scope="poc" class="table-base table-fixed table-sticky w-full min-w-[960px]">
           <thead class="sticky top-0 bg-white z-10">
             <tr>
               <th class="text-start w-40">商機名稱</th>
@@ -550,6 +565,7 @@ onMounted(() => {
               :key="item.pipelineId"
               class="cursor-pointer hover:bg-cyan-50 transition-colors"
               @click="clickPocListRow(item.pipelineId)"
+              @mousedown.left="clickPocListRow(item.pipelineId)"
             >
               <td class="text-start">{{ item.name }}</td>
               <td class="text-start">{{ item.status ? getPipelineStatusLabel(item.status) : "-" }}</td>

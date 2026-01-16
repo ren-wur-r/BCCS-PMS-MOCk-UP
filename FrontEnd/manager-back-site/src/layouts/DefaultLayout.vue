@@ -5,14 +5,21 @@ import Sidebar from "@/components/global/layout/Sidebar.vue";
 import Navbar from "@/components/global/layout/Navbar.vue";
 import { getModuleInfoByPath } from "@/constants/moduleInfo";
 import AnnotationOverlay from "@/components/global/annotation/AnnotationOverlay.vue";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 // 側邊欄狀態：預設展開
 const isSidebarOpen = ref(true);
 const showModuleInfo = ref(import.meta.env.VITE_SHOW_MODULE_INFO === "true");
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA === "true";
 const route = useRoute();
+const { moduleTitleOverride } = useModuleTitleStore();
 const moduleInfo = computed(() => getModuleInfoByPath(route.path));
-const moduleTitle = computed(() => String(route.meta?.title ?? moduleInfo.value?.title ?? "模組"));
+const moduleTitle = computed(() => {
+  return (
+    moduleTitleOverride.value ||
+    String(route.meta?.title ?? moduleInfo.value?.title ?? "模組")
+  );
+});
 const noteKey = computed(() => `module-note:${route.path}`);
 const draftNote = ref("");
 

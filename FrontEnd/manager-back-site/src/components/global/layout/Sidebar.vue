@@ -104,7 +104,7 @@ const sidebarObj: SidebarViewMdl[] = [
         requiredPermission: DbAtomMenuEnum.CrmPipeline,
       },
       {
-        menuLabel: "電銷開發",
+        menuLabel: "電銷轉派",
         routePath: "/crm/pipeline/handoff",
         requiredPermission: DbAtomMenuEnum.CrmPipeline,
       },
@@ -243,7 +243,7 @@ const roleRouteAllowList: Record<string, string[]> = {
     "/system/master",
     "/crm/phone/pool",
   ],
-  顧問: ["/work/project", "/work/job", "/work/capacity"],
+  顧問: ["/work/project", "/work/job"],
   產品經理: ["/work/project", "/work/job", "/work/capacity"],
   工程師: ["/work/project", "/work/job"],
   資深顧問: ["/work/project", "/work/job", "/work/capacity"],

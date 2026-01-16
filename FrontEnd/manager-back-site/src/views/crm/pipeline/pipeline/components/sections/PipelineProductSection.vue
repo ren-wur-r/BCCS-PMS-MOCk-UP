@@ -140,13 +140,7 @@ const handleDeleteProduct = (productId: number | null, index: number) => {
           />
         </svg>
       </div>
-      <button
-        v-if="!readonly && employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
-        class="btn-add"
-        @click="handleAddProduct"
-      >
-        附加產品
-      </button>
+      <span v-if="!readonly && employeeInfoStore.hasPermission(menu, 'create') && isExpanded"></span>
     </div>
 
     <!-- 使用 v-show 控制內容顯示 -->
@@ -179,8 +173,9 @@ const handleDeleteProduct = (productId: number | null, index: number) => {
         </div>
       </div>
 
-      <div v-if="productList.length === 0" class="text-gray-400 text-center py-4">
-        {{ readonly ? "無產品資料" : "尚未新增產品，請點擊「附加產品」按鈕" }}
+      <div v-if="productList.length === 0" class="py-4">
+        <div v-if="readonly" class="text-gray-400 text-center">無產品資料</div>
+        <div v-else></div>
       </div>
 
       <div v-else class="overflow-x-auto">
@@ -252,7 +247,8 @@ const handleDeleteProduct = (productId: number | null, index: number) => {
                 <div class="flex justify-center gap-1">
                   <button
                     v-if="employeeInfoStore.hasPermission(menu, 'edit')"
-                    class="btn-update"
+                    class="rounded-lg border border-dashed px-3 py-1 text-xs font-medium text-[#082F49] hover:text-[#061F30]"
+                    style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
                     @click="handleEditProduct(item, index)"
                   >
                     編輯
@@ -270,6 +266,14 @@ const handleDeleteProduct = (productId: number | null, index: number) => {
           </tbody>
         </table>
       </div>
+      <button
+        v-if="!readonly && employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
+        class="mt-4 w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        @click="handleAddProduct"
+      >
+        附加產品
+      </button>
     </div>
   </div>
 </template>

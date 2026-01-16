@@ -24,6 +24,10 @@ interface BillItem {
   employeePipelineBillPeriodNumber: number;
   /** 發票日期 */
   employeePipelineBillBillTime: string;
+  /** 發票種類：先開發票/後執行 */
+  employeePipelineBillIsPreIssued: boolean;
+  /** 預計執行日 */
+  employeePipelineBillExecuteDate: string | null;
   /** 未稅發票金額 */
   employeePipelineBillNoTaxAmount: number;
   /** 備註 */
@@ -104,18 +108,14 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
         </svg>
       </div>
 
-      <button
+      <span
         v-if="
           props.canEditMultipleBills &&
           !props.readonly &&
           employeeInfoStore.hasPermission(menu, 'edit') &&
           isExpanded
         "
-        class="btn-update"
-        @click="emit('edit-multiple-bills')"
-      >
-        編輯
-      </button>
+      ></span>
     </div>
 
     <!-- 使用 v-show 控制內容顯示 -->
@@ -134,7 +134,7 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
         </div>
       </div>
 
-      <div v-if="!props.billList.length" class="text-gray-400 text-center py-6">尚無發票記錄</div>
+      <div v-if="!props.billList.length"></div>
 
       <div v-else>
         <table class="table-base table-fixed table-sticky w-full">
@@ -142,6 +142,8 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
             <tr>
               <th class="text-center w-24">期數</th>
               <th class="text-center w-36">發票日期</th>
+              <th class="text-center w-24">發票種類</th>
+              <th class="text-center w-36">預計執行日</th>
               <th class="text-start w-36">發票號碼</th>
               <th class="text-end w-36">含稅金額</th>
               <th class="text-start">備註</th>
@@ -158,6 +160,16 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
               <td class="text-center">第 {{ bill.employeePipelineBillPeriodNumber }} 期</td>
               <td class="text-center">
                 {{ formatDate(bill.employeePipelineBillBillTime) || "-" }}
+              </td>
+              <td class="text-center">
+                {{ bill.employeePipelineBillIsPreIssued ? "先開發票" : "-" }}
+              </td>
+              <td class="text-center">
+                {{
+                  bill.employeePipelineBillIsPreIssued
+                    ? formatDate(bill.employeePipelineBillExecuteDate || "") || "-"
+                    : "-"
+                }}
               </td>
               <td class="text-start">{{ bill.employeePipelineBillBillNumber || "-" }}</td>
               <td class="text-end">
@@ -204,6 +216,18 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
           </tbody>
         </table>
       </div>
+      <button
+        v-if="
+          props.canEditMultipleBills &&
+          !props.readonly &&
+          employeeInfoStore.hasPermission(menu, 'edit')
+        "
+        class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        @click="emit('edit-multiple-bills')"
+      >
+        新增發票紀錄
+      </button>
     </div>
   </div>
 </template>

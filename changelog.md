@@ -284,3 +284,29 @@ To restore full production functionality:
 
 - Added consultant service template stages, outputs, Onsite/Offsite hours, and deadline settings (FrontEnd/manager-back-site/src/stores/projectTemplateSettings.ts, FrontEnd/manager-back-site/src/views/system/project-template/SystemProjectTemplateSettings.vue).
 - Documented consultant template mapping in process reference (referenceOfProcess/consultantProcess/consultantProjectStart.md).
+
+## 2026-01-15 - Company Update API References
+
+- 公司基本資料：
+  - API：`/api/MbsSystemCompany/UpdateCompany`
+  - Service：`updateCompany` in `FrontEnd/manager-back-site/src/services/pms-http/system/company/systemCompanyHttpService.ts`
+- 公司營業地點（地址/電話/城市/狀態）：
+  - API：`/api/MbsSystemCompany/UpdateCompanyLocation`
+  - Service：`updateCompanyLocation` in `FrontEnd/manager-back-site/src/services/pms-http/system/company/systemCompanyHttpService.ts`
+- 公司關係（母/子公司）：
+  - API：`/api/MbsSystemCompany/UpdateCompanyAffiliate`
+  - Service：`updateCompanyAffiliate` in `FrontEnd/manager-back-site/src/services/pms-http/system/company/systemCompanyHttpService.ts`
+- 參考實作：
+  - `FrontEnd/manager-back-site/src/views/system/company/SystemCompanyDetail.vue`
+    - `clickSubmitCompanyBtn`（更新公司）
+    - `updateCompanyLocation` 呼叫流程
+
+## 2026-01-16 - Dashboard Work Log & Annotation Updates
+
+- Added dashboard top-level tabs (專案概況 / 工作日誌) for staff, manager, and sales views; moved existing content to 專案概況 and put work logs under 工作日誌 (FrontEnd/manager-back-site/src/views/home/components/StaffDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/ManagerDashboard.vue, FrontEnd/manager-back-site/src/views/home/components/SalesDashboard.vue).
+- Added quick work log lists for 專案日誌/日常日誌 with local storage persistence and inline display on dashboard (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
+- Updated work log modal labels to 最後更新日 (date/time split) and removed evening time slot (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
+- Styled work log action button as full-width dashed and moved below log lists (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
+- Mapped quick work log milestone display to stage name (from service template) instead of status (FrontEnd/manager-back-site/src/components/feature/work/QuickWorkLog.vue).
+- Showed current stage name in project milestone timeline and replaced status labels with current stage name marker (FrontEnd/manager-back-site/src/views/work/project/WorkProjectDetail.vue).
+- Added expandable annotation notes with resize, size toggle, and persisted expanded size state (FrontEnd/manager-back-site/src/components/global/annotation/AnnotationOverlay.vue).

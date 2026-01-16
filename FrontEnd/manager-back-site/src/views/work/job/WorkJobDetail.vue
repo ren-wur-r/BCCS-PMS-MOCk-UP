@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //#region 引入
-import { ref, reactive, onMounted, defineAsyncComponent } from "vue";
+import { ref, reactive, onMounted, defineAsyncComponent, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 // Enums / 常數
 import { DbAtomEmployeeProjectStatusEnum } from "@/constants/DbAtomEmployeeProjectStatusEnum";
@@ -9,6 +9,7 @@ import { MbsErrorCodeEnum } from "@/constants/MbsErrorCodeEnum";
 // Stores
 import { useTokenStore } from "@/stores/token";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 // Composables
 import { useAuth } from "@/composables/useAuth";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
@@ -50,6 +51,7 @@ const WorkJobRecordAdd = defineAsyncComponent(() => import("./components/WorkJob
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -454,6 +456,18 @@ const handleCloseError = () => {
 //#region 生命週期
 onMounted(() => {
   getData();
+});
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === TabEnum.WorkRecord ? "工作記錄" : "工項內容");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 //#endregion
 </script>

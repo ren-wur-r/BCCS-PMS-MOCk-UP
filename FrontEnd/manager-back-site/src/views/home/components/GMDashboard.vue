@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AnnouncementBoard from "./AnnouncementBoard.vue";
 import { 
@@ -19,6 +19,7 @@ import { mockDataSets } from "@/services/mockApi/mockDataSets";
 import { loadProjectTemplateSettings } from "@/stores/projectTemplateSettings";
 import { useMockDataStore } from "@/stores/mockDataStore";
 import { orgMemberDirectory } from "@/constants/orgMemberDirectory";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 const dashboardData = ref<MbsDashboardHttpGetInfoRspMdl | null>(null);
 const templateSettings = computed(() => loadProjectTemplateSettings());
@@ -37,6 +38,7 @@ const selectedStage = ref<DbAtomPipelineStatusEnum | null>(null);
 const selectedRisk = ref<DbAtomEmployeeProjectStatusEnum | null>(null);
 const route = useRoute();
 const router = useRouter();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 const useMockData = import.meta.env.VITE_USE_MOCK_DATA === "true";
 
 const pipelineStageColorMap: Record<DbAtomPipelineStatusEnum, string> = {
@@ -124,6 +126,18 @@ watch(
     syncTabFromRoute();
   }
 );
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === "pipeline" ? "商機概況" : "專案概況");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
 
 const getRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
   if (useMockData) {

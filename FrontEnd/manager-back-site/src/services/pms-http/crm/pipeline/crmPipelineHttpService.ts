@@ -478,6 +478,8 @@ export const getEmployeePipeline = async (
               employeePipelineBillID: item.a,
               employeePipelineBillPeriodNumber: item.b,
               employeePipelineBillBillTime: item.c,
+              employeePipelineBillIsPreIssued: item.h ?? false,
+              employeePipelineBillExecuteDate: item.i ?? null,
               employeePipelineBillBillNumber: item.d,
               employeePipelineBillNoTaxAmount: item.e,
               employeePipelineBillRemark: item.f,
@@ -545,6 +547,8 @@ export const addEmployeePipeline = async (
         ({
           a: item.employeePipelineBillPeriodNumber,
           b: item.employeePipelineBillBillTime,
+          f: item.employeePipelineBillIsPreIssued,
+          g: item.employeePipelineBillExecuteDate,
           c: item.employeePipelineBillNoTaxAmount,
           d: item.employeePipelineBillRemark,
           e: item.employeePipelineBillStatus,
@@ -1583,6 +1587,8 @@ export const updateManyEmployeePipelineBill = async (
         ({
           a: item.employeePipelineBillPeriodNumber,
           b: item.employeePipelineBillBillTime,
+          e: item.employeePipelineBillIsPreIssued,
+          f: item.employeePipelineBillExecuteDate,
           c: item.employeePipelineBillNoTaxAmount,
           d: item.employeePipelineBillRemark,
         }) satisfies MbsCrmPplCtlUpdateManyEmployeePipelineBillReqItemMdl

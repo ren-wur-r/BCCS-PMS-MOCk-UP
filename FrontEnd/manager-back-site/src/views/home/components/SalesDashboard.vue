@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AnnouncementBoard from "./AnnouncementBoard.vue";
+import QuickWorkLog from "@/components/feature/work/QuickWorkLog.vue";
 import { 
   mbsDashboardHttpGetInfo, 
   type MbsDashboardHttpGetInfoRspMdl 
@@ -12,13 +13,16 @@ import { DbAtomPipelineStatusEnum } from "@/constants/DbAtomPipelineStatusEnum";
 import { getPipelineStatusLabel } from "@/utils/getPipelineStatusLabel";
 import { normalizeDashboardData } from "@/utils/buildDashboardMockData";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 const dashboardData = ref<MbsDashboardHttpGetInfoRspMdl | null>(null);
+const dashboardTab = ref<"overview" | "worklog">("overview");
 const activeTab = ref<"project" | "pipeline">("project");
 const selectedStage = ref<DbAtomPipelineStatusEnum | null>(null);
 const route = useRoute();
 const router = useRouter();
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 const handoffStorageKey = "cache.crm.pipeline.handoff.queue";
 
 const pipelineStageColorMap: Record<DbAtomPipelineStatusEnum, string> = {
@@ -137,6 +141,18 @@ watch(
   }
 );
 
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === "pipeline" ? "商機概況" : "專案概況");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
+
 const navigateToPipeline = (pipelineId: number) => {
   if (!pipelineId) return;
   router.push(`/crm/pipeline/pipeline/detail/${pipelineId}`);
@@ -146,25 +162,42 @@ const navigateToPipeline = (pipelineId: number) => {
 <template>
   <div class="flex flex-col gap-6">
     <AnnouncementBoard />
-
     <div class="flex gap-3 border-b border-gray-200">
       <button
         class="px-4 py-2 text-sm font-semibold rounded-t-md"
-        :class="activeTab === 'project' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
-        @click="setActiveTab('project')"
+        :class="dashboardTab === 'overview' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'overview'"
       >
         專案概況
       </button>
       <button
         class="px-4 py-2 text-sm font-semibold rounded-t-md"
-        :class="activeTab === 'pipeline' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
-        @click="setActiveTab('pipeline')"
+        :class="dashboardTab === 'worklog' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'worklog'"
       >
-        商機概況
+        工作日誌
       </button>
     </div>
 
-    <div v-if="activeTab === 'project'" class="flex flex-col gap-6">
+    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+      <div class="flex gap-3 border-b border-gray-200">
+        <button
+          class="px-4 py-2 text-sm font-semibold rounded-t-md"
+          :class="activeTab === 'project' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+          @click="setActiveTab('project')"
+        >
+          專案概況
+        </button>
+        <button
+          class="px-4 py-2 text-sm font-semibold rounded-t-md"
+          :class="activeTab === 'pipeline' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+          @click="setActiveTab('pipeline')"
+        >
+          商機概況
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'project'" class="flex flex-col gap-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-gray-500 text-sm font-medium mb-2">個人商機開發數</h3>
@@ -219,9 +252,9 @@ const navigateToPipeline = (pipelineId: number) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
-    <div v-else class="flex flex-col gap-6">
+      <div v-else class="flex flex-col gap-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white rounded-lg shadow p-6">
           <h3 class="text-gray-500 text-sm font-medium mb-2">個人商機毛利總額</h3>
@@ -301,6 +334,11 @@ const navigateToPipeline = (pipelineId: number) => {
           </table>
         </div>
       </div>
+      </div>
+    </div>
+
+    <div v-else class="flex flex-col gap-6">
+      <QuickWorkLog />
     </div>
   </div>
 </template>

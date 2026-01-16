@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { computed, reactive, watch } from "vue";
 import { useTokenStore } from "@/stores/token";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useAuth } from "@/composables/useAuth";
@@ -39,6 +39,7 @@ interface ContacterInfo {
 const props = defineProps<{
   show: boolean;
   managerCompanyID: number | null;
+  contacter?: ContacterInfo | null;
 }>();
 
 const emit = defineEmits<{
@@ -94,6 +95,7 @@ const addContacterValidateObj = reactive<AddContacterValidateMdl>({
 
 /** 是否正在初始化資料 */
 let isInitializing = false;
+const modalTitle = computed(() => (props.contacter ? "編輯窗口" : "附加窗口"));
 
 //----------------------------------------------------------
 /** 取得【窗口】資料 */
@@ -215,6 +217,23 @@ const resetForm = () => {
   resetError();
 };
 
+const hydrateContacter = (contacter: ContacterInfo) => {
+  isInitializing = true;
+  addContacterObj.managerContacterID = contacter.managerContacterID;
+  addContacterObj.employeePipelineContacterIsPrimary = contacter.employeePipelineContacterIsPrimary;
+  addContacterObj.managerContacterEmail = contacter.managerContacterEmail;
+  addContacterObj.managerContacterName = contacter.managerContacterName;
+  addContacterObj.managerContacterPhone = contacter.managerContacterPhone;
+  addContacterObj.managerContacterDepartment = contacter.managerContacterDepartment;
+  addContacterObj.managerContacterJobTitle = contacter.managerContacterJobTitle;
+  addContacterObj.managerContacterStatus = contacter.managerContacterStatus;
+  addContacterObj.managerContacterRemark = contacter.managerContacterRemark;
+  addContacterObj.managerContacterTelephone = contacter.managerContacterTelephone;
+  addContacterObj.managerContacterIsConsent = contacter.managerContacterIsConsent;
+  addContacterObj.atomRatingKind = contacter.atomRatingKind;
+  isInitializing = false;
+};
+
 //----------------------------------------------------------
 // 當選擇窗口變更時，取得窗口資料
 watch(
@@ -234,8 +253,10 @@ watch(
   () => props.show,
   (newVal) => {
     if (newVal) {
-      // 彈窗開啟時，重置表單
       resetForm();
+      if (props.contacter) {
+        hydrateContacter(props.contacter);
+      }
     } else {
       // 彈窗關閉時重置表單
       resetForm();
@@ -249,7 +270,7 @@ watch(
     <div class="w-[630px] max-w-[95vw] max-h-[90vh] bg-white rounded-lg shadow-lg">
       <!-- 標題列 -->
       <div class="flex items-center justify-between p-4 border-b">
-        <h2 class="text-lg font-bold text-gray-800">附加窗口</h2>
+        <h2 class="text-lg font-bold text-gray-800">{{ modalTitle }}</h2>
         <button
           class="rounded hover:bg-gray-200 text-gray-500 transition-colors text-lg font-bold px-2"
           @click="clickCancelBtn"
@@ -342,14 +363,6 @@ watch(
                 <hr class="my-2" />
 
                 <p class="flex flex-row gap-5">
-                  <span class="display-label w-20 shrink-0">手機</span>
-                  <span class="display-value break-words">{{
-                    addContacterObj.managerContacterPhone || "-"
-                  }}</span>
-                </p>
-                <hr class="my-2" />
-
-                <p class="flex flex-row gap-5">
                   <span class="display-label w-20 shrink-0">部門</span>
                   <span class="display-value break-words">{{
                     addContacterObj.managerContacterDepartment || "-"
@@ -369,6 +382,14 @@ watch(
                   <span class="display-label w-20 shrink-0">電話分機</span>
                   <span class="display-value break-words">{{
                     addContacterObj.managerContacterTelephone || "-"
+                  }}</span>
+                </p>
+                <hr class="my-2" />
+
+                <p class="flex flex-row gap-5">
+                  <span class="display-label w-20 shrink-0">手機</span>
+                  <span class="display-value break-words">{{
+                    addContacterObj.managerContacterPhone || "-"
                   }}</span>
                 </p>
                 <hr class="my-2" />

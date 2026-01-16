@@ -58,6 +58,7 @@ import AddWorkProjectEmployeeModal from "./components/AddWorkProjectEmployeeModa
 import AddWorkProjectExpenseModal from "./components/AddWorkProjectExpenseModal.vue";
 import UpdateWorkProjectExpenseModal from "./components/UpdateWorkProjectExpenseModal.vue";
 import ProjectRolePermissionInfo from "@/components/global/info/ProjectRolePermissionInfo.vue";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 const ErrorAlert = defineAsyncComponent(
   () => import("@/components/global/feedback/ErrorAlert.vue")
@@ -90,6 +91,7 @@ const projectRolePermissionInfoRef = ref<InstanceType<typeof ProjectRolePermissi
 );
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -117,6 +119,7 @@ enum PipelineTabEnum {
   ProjectStoneTask = "ProjectStoneTask",
   Poc = "Poc",
   Expense = "Expense",
+  Risk = "Risk",
 }
 
 /** 工作-專案管理-檢視-頁面模型 */
@@ -854,6 +857,20 @@ const workProjectExpenseListViewObj = reactive<WorkProjectExpenseListViewMdl>({
   eipProjectTravelExpenseList: [],
 });
 
+type ProjectRiskItem = {
+  id: number;
+  title: string;
+  note: string;
+  createdAt: string;
+  createdBy: string;
+};
+
+const projectRiskList = ref<ProjectRiskItem[]>([]);
+const projectRiskDraft = reactive({
+  title: "",
+  note: "",
+});
+
 /** 工作-專案管理-更新-驗證物件 */
 const wrkProjectUpdateValidateObj = reactive<WorkProjectUpdateValidateMdl>({
   employeeProjectName: true,
@@ -883,7 +900,27 @@ const changeTab = (tab: PipelineTabEnum) => {
     hydratePocBranch();
   } else if (tab === PipelineTabEnum.Expense) {
     getExpenseData();
+  } else if (tab === PipelineTabEnum.Risk) {
+    // 風險管理暫為前端草稿清單
   }
+};
+
+const addProjectRisk = () => {
+  const title = projectRiskDraft.title.trim();
+  if (!title) {
+    displayError("請輸入風險事項");
+    return;
+  }
+  projectRiskList.value.unshift({
+    id: Date.now(),
+    title,
+    note: projectRiskDraft.note.trim() || "-",
+    createdAt: new Date().toISOString(),
+    createdBy: employeeInfoStore.employeeName || "未登入使用者",
+  });
+  projectRiskDraft.title = "";
+  projectRiskDraft.note = "";
+  displaySuccess("已新增風險");
 };
 
 const toggleServiceItem = (serviceItemId: number) => {
@@ -1317,6 +1354,18 @@ const milestoneTimeline = computed(() => {
       isLast: index === total - 1,
     };
   });
+});
+const currentStageId = computed(() => {
+  const milestones = derivedStageMilestones.value;
+  if (milestones.length === 0) return null;
+  const active = milestones.find((milestone) => milestone.status !== "完成");
+  return (active || milestones[milestones.length - 1]).stageId;
+});
+const currentStageName = computed(() => {
+  const milestones = derivedStageMilestones.value;
+  if (milestones.length === 0) return "-";
+  const active = milestones.find((milestone) => milestone.status !== "完成");
+  return (active || milestones[milestones.length - 1]).stageName || "-";
 });
 const getMilestoneStatusClass = (status: string) => {
   if (status === "完成") return "bg-emerald-500";
@@ -2190,9 +2239,6 @@ const loadProjectContext = () => {
 
 const applyTabFromQuery = () => {
   const tab = route.query.tab;
-  if (tab === "poc") {
-    activeTab.value = PipelineTabEnum.Poc;
-  }
   const pipelineIdParam = Number(route.query.pipelineId);
   if (Number.isFinite(pipelineIdParam) && pipelineIdParam > 0) {
     pocBranchForm.pipelineId = pipelineIdParam;
@@ -2241,7 +2287,25 @@ onUnmounted(() => {
   window.removeEventListener("storage", handleCheckInStorage);
   window.removeEventListener(fileReviewEventName, handleFileReviewEvent as EventListener);
   document.removeEventListener("click", closeActionMenu);
+  clearModuleTitle();
 });
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<PipelineTabEnum, string> = {
+      [PipelineTabEnum.Project]: "專案資訊",
+      [PipelineTabEnum.Template]: "標準階段與產出",
+      [PipelineTabEnum.ProjectStone]: "里程碑",
+      [PipelineTabEnum.ProjectStoneTask]: "里程碑工項",
+      [PipelineTabEnum.Poc]: "POC",
+      [PipelineTabEnum.Expense]: "收支",
+      [PipelineTabEnum.Risk]: "風險管理",
+    };
+    setModuleTitle(titleMap[tab] ?? "專案資訊");
+  },
+  { immediate: true }
+);
 
 watch(
   () => [pocBranchForm, pocBranchAssignments],
@@ -2339,16 +2403,16 @@ watch(
         里程碑
       </button>
       <button
-        :class="['tab-btn', { active: activeTab === PipelineTabEnum.Poc }]"
-        @click="changeTab(PipelineTabEnum.Poc)"
-      >
-        POC
-      </button>
-      <button
         :class="['tab-btn', { active: activeTab === PipelineTabEnum.Expense }]"
         @click="changeTab(PipelineTabEnum.Expense)"
       >
         收支
+      </button>
+      <button
+        :class="['tab-btn', { active: activeTab === PipelineTabEnum.Risk }]"
+        @click="changeTab(PipelineTabEnum.Risk)"
+      >
+        風險管理
       </button>
     </div>
 
@@ -3232,8 +3296,9 @@ watch(
             無里程碑資料
           </div>
           <div v-else class="space-y-4">
-            <div class="flex items-center justify-between text-xs text-gray-500">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
               <span>專案期間：{{ formatDate(workProjectDetailViewObj.employeeProjectStartTime) }}</span>
+              <span>目前階段：{{ currentStageName }}</span>
               <span>{{ formatDate(workProjectDetailViewObj.employeeProjectEndTime) }}</span>
             </div>
             <div
@@ -3253,8 +3318,8 @@ watch(
                 <div class="flex-1">
                   <div class="flex items-center justify-between">
                     <p class="text-sm font-semibold text-gray-700">{{ milestone.stageName }}</p>
-                    <p class="text-xs" :class="getMilestoneTextClass(milestone.status)">
-                      {{ milestone.status }}
+                    <p class="text-xs text-gray-500">
+                      {{ milestone.stageId === currentStageId ? currentStageName : "-" }}
                     </p>
                   </div>
                   <div class="mt-2 h-2 rounded-full bg-gray-100 relative overflow-hidden">
@@ -3267,108 +3332,6 @@ watch(
                       }"
                     ></div>
                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- POC -->
-      <div
-        v-if="activeTab === PipelineTabEnum.Poc"
-        class="tab h-full flex flex-col gap-4"
-        data-annotation-scope="work-project-detail:poc"
-      >
-        <div class="flex flex-col bg-white rounded-lg p-8 gap-4 rounded-tl-none">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="subtitle">POC 分支</h3>
-              <p class="text-xs text-gray-500 mt-1">工程/顧問回寫進度會同步至商機 POC。</p>
-            </div>
-            <div class="text-xs text-gray-500">關聯商機：{{ pocBranchForm.pipelineId || "未綁定" }}</div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <label class="form-label">POC 週期</label>
-              <select v-model="pocBranchForm.durationWeeks" class="select-box">
-                <option value="">請選擇</option>
-                <option value="2">2 週</option>
-                <option value="3">3 週</option>
-                <option value="4">4 週</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label">POC 結果</label>
-              <select v-model="pocBranchForm.result" class="select-box">
-                <option value="">請選擇</option>
-                <option value="order">會下單</option>
-                <option value="no_order">不會下單</option>
-              </select>
-            </div>
-            <div v-if="pocBranchForm.result === 'no_order'">
-              <label class="form-label">不會下單原因</label>
-              <select v-model="pocBranchForm.rejectReason" class="select-box" :disabled="pocBranchForm.result !== 'no_order'">
-                <option value="">請選擇</option>
-                <option v-for="reason in pocReasons" :key="reason" :value="reason">
-                  {{ reason }}
-                </option>
-              </select>
-            </div>
-            <div v-if="pocBranchForm.result === 'no_order' && pocBranchForm.rejectReason === '其他'">
-              <label class="form-label">原因補充</label>
-              <input v-model="pocBranchForm.rejectReasonNote" class="input-box" placeholder="輸入原因" />
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="table-base table-fixed table-sticky w-full min-w-[720px]">
-              <thead class="sticky top-0 bg-white z-10">
-                <tr>
-                  <th class="text-start w-28">部門</th>
-                  <th class="text-start w-24">指派人員</th>
-                  <th class="text-start w-40">進程</th>
-                  <th class="text-start w-40">追蹤待辦</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="pocBranchAssignments.length === 0">
-                  <td colspan="4" class="text-center text-gray-400 py-6">尚未建立 POC</td>
-                </tr>
-                <tr v-for="item in pocBranchAssignments" :key="item.id" class="border border-gray-300">
-                  <td class="text-start">{{ item.departmentName || "-" }}</td>
-                  <td class="text-start">{{ item.employeeName || "-" }}</td>
-                  <td class="text-start">
-                    <input v-model="item.progress" type="text" class="input-box" placeholder="輸入進程" />
-                  </td>
-                  <td class="text-start">
-                    <input v-model="item.todo" type="text" class="input-box" placeholder="輸入待辦" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="space-y-2">
-            <p class="text-sm font-semibold text-gray-600">標準階段待辦</p>
-            <div v-if="selectedStageTemplates.length === 0" class="text-sm text-gray-500">
-              尚未設定標準階段
-            </div>
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div
-                v-for="template in selectedStageTemplates"
-                :key="template.stageTemplateId"
-                class="rounded-lg border border-gray-200 bg-gray-50 p-3"
-              >
-                <p class="text-sm font-semibold text-gray-700">{{ template.stageTemplateName }}</p>
-                <div class="mt-2 space-y-1">
-                  <p
-                    v-for="stage in template.stages"
-                    :key="stage.stageId"
-                    class="text-xs text-gray-600"
-                  >
-                    ・{{ stage.stageName }}
-                  </p>
                 </div>
               </div>
             </div>
@@ -3761,6 +3724,80 @@ watch(
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 風險管理 -->
+      <div
+        v-if="activeTab === PipelineTabEnum.Risk"
+        class="tab h-full"
+        data-annotation-scope="work-project-detail:risk"
+      >
+        <div
+          class="flex flex-col bg-white rounded-lg p-8 gap-4 rounded-tl-none h-full overflow-y-auto"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="subtitle">風險管理</div>
+              <p class="text-xs text-gray-500 mt-1">
+                記錄可能風險，不影響專案風險等級，供部門主管與總經理檢視。
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label class="form-label">風險事項</label>
+              <input
+                v-model="projectRiskDraft.title"
+                type="text"
+                class="input-box"
+                placeholder="輸入風險事項"
+              />
+            </div>
+            <div>
+              <label class="form-label">說明</label>
+              <input
+                v-model="projectRiskDraft.note"
+                type="text"
+                class="input-box"
+                placeholder="補充風險細節或影響"
+              />
+            </div>
+          </div>
+
+          <button
+            class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+            style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+            type="button"
+            @click="addProjectRisk"
+          >
+            新增風險
+          </button>
+
+          <div v-if="projectRiskList.length === 0" class="text-gray-400 text-center py-4">
+            尚無風險紀錄
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="table-base table-fixed table-sticky w-full">
+              <thead class="bg-gray-800 text-white">
+                <tr>
+                  <th class="text-start w-40">風險事項</th>
+                  <th class="text-start">說明</th>
+                  <th class="text-start w-32">提出人</th>
+                  <th class="text-start w-28">日期</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in projectRiskList" :key="item.id" class="border border-gray-300">
+                  <td class="text-start">{{ item.title }}</td>
+                  <td class="text-start">{{ item.note }}</td>
+                  <td class="text-start">{{ item.createdBy }}</td>
+                  <td class="text-start">{{ formatDate(item.createdAt) || "-" }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

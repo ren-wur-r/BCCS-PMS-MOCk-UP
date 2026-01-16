@@ -68,7 +68,8 @@ const clickAppendBtn = () => {
             <td class="text-start">{{ product.managerProductName }}</td>
             <td v-if="showActionRow" class="text-center">
               <button
-                class="btn-update me-1"
+                class="me-1 rounded-lg border border-dashed px-3 py-1 text-xs font-medium text-[#082F49] hover:text-[#061F30]"
+                style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
                 :disabled="loading"
                 @click="clickEditBtn(index, product)"
               >
@@ -88,5 +89,12 @@ const clickAppendBtn = () => {
   </div>
 
   <!-- 附加產品按鈕 -->
-  <button v-if="showAppendBtn" class="btn-add" @click="clickAppendBtn">附加產品</button>
+  <button
+    v-if="showAppendBtn"
+    class="rounded-lg border border-dashed px-4 py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+    style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+    @click="clickAppendBtn"
+  >
+    附加產品
+  </button>
 </template>

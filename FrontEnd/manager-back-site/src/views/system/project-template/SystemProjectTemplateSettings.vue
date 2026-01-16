@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
 import draggable from "vuedraggable";
 import { useRouter } from "vue-router";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import {
   loadProjectTemplateSettings,
   saveProjectTemplateSettings,
@@ -27,6 +28,7 @@ const serviceItems = computed(() => templateSettings.value.serviceItems);
 const stageTemplates = computed(() => templateSettings.value.stageTemplates);
 
 const activeTab = ref<"projectType" | "serviceItem">("projectType");
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 const canViewProjectType = computed(() => {
   const roleName = employeeInfoStore.effectiveRoleName || "";
   return !roleName.includes("各部門經理");
@@ -833,6 +835,18 @@ watch(
   },
   { immediate: true }
 );
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === "projectType" ? "專案類型" : "服務項目");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
 </script>
 
 <template>

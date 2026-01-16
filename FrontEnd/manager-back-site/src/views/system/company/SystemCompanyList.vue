@@ -1,6 +1,6 @@
 <script setup lang="ts">
 //#region 引入
-import { reactive, ref, onMounted, watch } from "vue";
+import { reactive, ref, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 import { DbAtomCustomerGradeEnum } from "@/constants/DbAtomCustomerGradeEnum";
@@ -9,6 +9,7 @@ import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useSuccessHandler } from "@/composables/useSuccessHandler";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
 import { useAuth } from "@/composables/useAuth";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import { getManyCompany } from "@/services";
 import { 
   getManyCompanyMainKind, 
@@ -58,6 +59,7 @@ import GetManyManagerCompanySubKindComboBox from "@/components/feature/search-ba
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -690,6 +692,23 @@ watch(
 //#region 生命週期
 onMounted(() => {
   getCompanyList();
+});
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<CompanyTabEnum, string> = {
+      [CompanyTabEnum.Customer]: "客戶",
+      [CompanyTabEnum.SubKind]: "子分類",
+      [CompanyTabEnum.MainKind]: "主分類",
+    };
+    setModuleTitle(titleMap[tab] ?? "客戶");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 
 //#endregion

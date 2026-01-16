@@ -12,6 +12,10 @@ interface BillItem {
   employeePipelineBillPeriodNumber: number;
   /** 發票日期 */
   employeePipelineBillBillTime: string;
+  /** 發票種類：先開發票/後執行 */
+  employeePipelineBillIsPreIssued: boolean;
+  /** 預計執行日 */
+  employeePipelineBillExecuteDate: string | null;
   /** 未稅發票金額 */
   employeePipelineBillNoTaxAmount: number;
   /** 備註 */
@@ -78,6 +82,8 @@ const calculateBills = (): BillItem[] => {
     bills.push({
       employeePipelineBillPeriodNumber: i + 1,
       employeePipelineBillBillTime: formatToDateInput(billDate),
+      employeePipelineBillIsPreIssued: false,
+      employeePipelineBillExecuteDate: null,
       employeePipelineBillNoTaxAmount: i === 0 ? baseAmount + remainder : baseAmount,
       employeePipelineBillRemark: "",
       employeePipelineBillID: null,
@@ -151,6 +157,10 @@ const loadData = () => {
   billList.value = props.currentBills.map((bill) => ({
     ...bill,
     employeePipelineBillBillTime: convertToDate(bill.employeePipelineBillBillTime),
+    employeePipelineBillIsPreIssued: bill.employeePipelineBillIsPreIssued ?? false,
+    employeePipelineBillExecuteDate: bill.employeePipelineBillExecuteDate
+      ? convertToDate(bill.employeePipelineBillExecuteDate)
+      : null,
   }));
 };
 
@@ -187,10 +197,21 @@ const handleConfirm = () => {
     return;
   }
 
+  const hasMissingExecuteDate = billList.value.some(
+    (bill) => bill.employeePipelineBillIsPreIssued && !bill.employeePipelineBillExecuteDate
+  );
+  if (hasMissingExecuteDate) {
+    alert("已勾選先開發票的項目需填寫預計執行日");
+    return;
+  }
+
   // Date → DateTimeOffset 轉換
   const submitBillList = billList.value.map((bill) => ({
     ...bill,
     employeePipelineBillBillTime: formatToServerDateStartISO8(bill.employeePipelineBillBillTime),
+    employeePipelineBillExecuteDate: bill.employeePipelineBillExecuteDate
+      ? formatToServerDateStartISO8(bill.employeePipelineBillExecuteDate)
+      : null,
   }));
 
   emit("confirm", {
@@ -270,6 +291,8 @@ const handleCancel = () => {
                   <tr>
                     <th class="text-center w-24">期數</th>
                     <th class="text-center w-40">發票日期</th>
+                    <th class="text-center w-32">發票種類</th>
+                    <th class="text-center w-40">預計執行日</th>
                     <th class="text-end w-40">未稅發票金額</th>
                     <th class="text-start">備註</th>
                   </tr>
@@ -282,6 +305,29 @@ const handleCancel = () => {
                         v-model="bill.employeePipelineBillBillTime"
                         type="date"
                         class="input-box w-full"
+                      />
+                    </td>
+                    <td class="text-center">
+                      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          v-model="bill.employeePipelineBillIsPreIssued"
+                          type="checkbox"
+                          class="h-4 w-4"
+                          @change="
+                            bill.employeePipelineBillIsPreIssued
+                              ? null
+                              : (bill.employeePipelineBillExecuteDate = null)
+                          "
+                        />
+                        先開發票
+                      </label>
+                    </td>
+                    <td class="text-center">
+                      <input
+                        v-model="bill.employeePipelineBillExecuteDate"
+                        type="date"
+                        class="input-box w-full"
+                        :disabled="!bill.employeePipelineBillIsPreIssued"
                       />
                     </td>
                     <td class="text-end">

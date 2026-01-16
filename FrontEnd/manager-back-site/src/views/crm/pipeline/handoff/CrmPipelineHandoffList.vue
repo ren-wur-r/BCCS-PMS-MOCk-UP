@@ -296,7 +296,6 @@ onMounted(() => {
   <div class="flex flex-col h-[calc(100vh-100px)] overflow-hidden gap-4 p-2">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-500">電銷模組設計待確認</span>
       </div>
       <span class="text-xs text-gray-500">共 {{ pendingLeads.length }} 筆</span>
     </div>
@@ -307,7 +306,7 @@ onMounted(() => {
           <thead class="sticky top-0 bg-white z-10">
             <tr>
               <th class="text-start w-56">公司全名</th>
-              <th class="text-start w-32">窗口姓名</th>
+              <th class="text-start w-32">窗口</th>
               <th class="text-start w-56">洽談項目</th>
               <th class="text-start w-40">興趣程度</th>
               <th class="text-start w-24">分派業務</th>
@@ -317,7 +316,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="pendingLeads.length === 0" class="text-center">
-              <td colspan="7">目前無電銷開發資料</td>
+              <td colspan="7">目前無電銷轉派資料</td>
             </tr>
             <tr
               v-for="lead in pendingLeads"

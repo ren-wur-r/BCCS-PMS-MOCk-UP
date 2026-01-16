@@ -2,6 +2,7 @@
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AnnouncementBoard from "./AnnouncementBoard.vue";
+import QuickWorkLog from "@/components/feature/work/QuickWorkLog.vue";
 import {
   mbsDashboardHttpGetInfo,
   type MbsDashboardHttpGetInfoRspMdl,
@@ -26,6 +27,7 @@ const mockStore = useMockDataStore();
 const selectedRiskKey = ref<string>("all");
 const selectedMemberName = ref<string>("");
 const selectedMemberTab = ref<"projects" | "certs">("projects");
+const dashboardTab = ref<"overview" | "worklog">("overview");
 
 onMounted(async () => {
   try {
@@ -260,65 +262,82 @@ const clickProjectRow = (projectId: number) => {
 <template>
   <div class="flex flex-col gap-6">
     <AnnouncementBoard />
-
-    <!-- Department Overview -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-gray-500 text-sm font-medium mb-2">部門專案總數</h3>
-        <div class="text-3xl font-bold text-indigo-600">
-          {{ dashboardData?.DepartmentProjectCount || 0 }}
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-gray-500 text-sm font-medium mb-2">部門量能概況</h3>
-        <div class="flex items-end justify-between">
-          <div>
-            <div class="text-xs text-gray-400">本週總量能</div>
-            <div class="text-2xl font-bold text-emerald-600">
-              {{ departmentWeeklyCapacity }}
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="text-xs text-gray-400">已分派工時</div>
-            <div class="text-lg font-semibold text-gray-700">
-              {{ departmentAssignedHours }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-gray-800">部門專案風險等級</h3>
-          <span class="text-xs text-gray-500">點擊卡片可篩選專案列表</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            v-for="card in riskCards"
-            :key="card.key"
-            type="button"
-            class="rounded-lg border-l-4 p-4 text-left transition"
-            :class="card.className"
-            @click="clickRiskCard(card.key)"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-semibold">{{ card.label }}</span>
-              <span class="text-2xl font-bold">
-                {{ riskCounts.get(card.status) || 0 }}
-              </span>
-            </div>
-          </button>
-        </div>
-      </div>
+    <div class="flex gap-3 border-b border-gray-200">
+      <button
+        class="px-4 py-2 text-sm font-semibold rounded-t-md"
+        :class="dashboardTab === 'overview' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'overview'"
+      >
+        專案概況
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-semibold rounded-t-md"
+        :class="dashboardTab === 'worklog' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'worklog'"
+      >
+        工作日誌
+      </button>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-bold text-gray-800">部門專案列表</h3>
-        <span class="text-xs text-gray-500">
-          {{ selectedRiskKey === "all" ? "全部專案" : "已篩選" }} ·
-          {{ filteredProjects.length }} 筆
-        </span>
+    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+      <!-- Department Overview -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-gray-500 text-sm font-medium mb-2">部門專案總數</h3>
+          <div class="text-3xl font-bold text-indigo-600">
+            {{ dashboardData?.DepartmentProjectCount || 0 }}
+          </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-gray-500 text-sm font-medium mb-2">部門量能概況</h3>
+          <div class="flex items-end justify-between">
+            <div>
+              <div class="text-xs text-gray-400">本週總量能</div>
+              <div class="text-2xl font-bold text-emerald-600">
+                {{ departmentWeeklyCapacity }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-gray-400">已分派工時</div>
+              <div class="text-lg font-semibold text-gray-700">
+                {{ departmentAssignedHours }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 lg:col-span-2">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-gray-800">部門專案風險等級</h3>
+            <span class="text-xs text-gray-500">點擊卡片可篩選專案列表</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              v-for="card in riskCards"
+              :key="card.key"
+              type="button"
+              class="rounded-lg border-l-4 p-4 text-left transition"
+              :class="card.className"
+              @click="clickRiskCard(card.key)"
+            >
+              <div class="flex items-center justify-between">
+                <span class="font-semibold">{{ card.label }}</span>
+                <span class="text-2xl font-bold">
+                  {{ riskCounts.get(card.status) || 0 }}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-800">部門專案列表</h3>
+          <span class="text-xs text-gray-500">
+            {{ selectedRiskKey === "all" ? "全部專案" : "已篩選" }} ·
+            {{ filteredProjects.length }} 筆
+          </span>
+        </div>
       <div class="overflow-hidden">
         <table class="table-base table-sticky w-full">
           <thead class="sticky top-0 bg-white z-10">
@@ -521,6 +540,11 @@ const clickProjectRow = (projectId: number) => {
           </div>
         </div>
       </div>
+      </div>
+    </div>
+
+    <div v-else class="flex flex-col gap-6">
+      <QuickWorkLog />
     </div>
   </div>
 </template>

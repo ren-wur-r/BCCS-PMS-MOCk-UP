@@ -5,8 +5,10 @@ import { loadCapacityRecords, saveCapacityRecords, type CapacityRecord } from "@
 import { getMemberProjectStats } from "@/utils/capacityUtils";
 import { getEmployeeProjectStatusLabel } from "@/utils/getEmployeeProjectStatusLabel";
 import { useMockDataStore } from "@/stores/mockDataStore";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 const records = ref<CapacityRecord[]>(loadCapacityRecords());
 const mockStore = useMockDataStore();
 const activeTab = ref<"capacity" | "cert">("capacity");
@@ -205,7 +207,16 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("work-project-assignments-updated", refreshCapacity);
   window.removeEventListener("work-project-members-updated", refreshCapacity);
+  clearModuleTitle();
 });
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === "cert" ? "證照管理" : "量能管理");
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

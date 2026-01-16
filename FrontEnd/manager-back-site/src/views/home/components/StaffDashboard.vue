@@ -2,6 +2,7 @@
 import { computed, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AnnouncementBoard from "./AnnouncementBoard.vue";
+import QuickWorkLog from "@/components/feature/work/QuickWorkLog.vue";
 import { 
   mbsDashboardHttpGetInfo, 
   type MbsDashboardHttpGetInfoRspMdl 
@@ -15,6 +16,7 @@ const dashboardData = ref<MbsDashboardHttpGetInfoRspMdl | null>(null);
 const employeeInfoStore = useEmployeeInfoStore();
 const router = useRouter();
 const roleName = computed(() => employeeInfoStore.effectiveRoleName || "");
+const dashboardTab = ref<"overview" | "worklog">("overview");
 const isTeleSales = computed(() => roleName.value.includes("電銷人員"));
 const isActivityStaff = computed(() => roleName.value.includes("活動人員"));
 const isProductManager = computed(() => roleName.value.includes("產品經理"));
@@ -155,8 +157,25 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
 <template>
   <div class="flex flex-col gap-6">
     <AnnouncementBoard />
+    <div class="flex gap-3 border-b border-gray-200">
+      <button
+        class="px-4 py-2 text-sm font-semibold rounded-t-md"
+        :class="dashboardTab === 'overview' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'overview'"
+      >
+        專案概況
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-semibold rounded-t-md"
+        :class="dashboardTab === 'worklog' ? 'bg-white text-blue-600 border border-b-white border-gray-200' : 'text-gray-500'"
+        @click="dashboardTab = 'worklog'"
+      >
+        工作日誌
+      </button>
+    </div>
 
-    <div v-if="isTeleSales" class="bg-white rounded-lg shadow p-6">
+    <div v-if="dashboardTab === 'overview'" class="flex flex-col gap-6">
+      <div v-if="isTeleSales" class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4">電銷名單概況</h3>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
@@ -216,7 +235,7 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
       </div>
     </div>
 
-    <div v-else-if="isActivityStaff" class="bg-white rounded-lg shadow p-6">
+      <div v-else-if="isActivityStaff" class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4">活動管理概況</h3>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4">
@@ -308,7 +327,7 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
       </div>
     </div>
 
-    <div v-else-if="isProjectStaff" class="bg-white rounded-lg shadow p-6">
+      <div v-else-if="isProjectStaff" class="bg-white rounded-lg shadow p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-4">我的專案概況</h3>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div
@@ -410,6 +429,11 @@ const getPersonalRiskCount = (status: DbAtomEmployeeProjectStatusEnum) => {
           </div>
         </div>
       </div>
+      </div>
+    </div>
+
+    <div v-else class="flex flex-col gap-6">
+      <QuickWorkLog />
     </div>
   </div>
 </template>

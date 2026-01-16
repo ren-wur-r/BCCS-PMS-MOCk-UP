@@ -1,12 +1,13 @@
 <script setup lang="ts">
 //#region 引入
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { useErrorCodeHandler } from "@/composables/useErrorCodeHandler";
 import { useSuccessHandler } from "@/composables/useSuccessHandler";
 import { useAuth } from "@/composables/useAuth";
 import { useTokenStore } from "@/stores/token";
 import { useEmployeeInfoStore } from "@/stores/employeeInfo";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
 import { getManagerContacterRatingLabel } from "@/utils/getManagerContacterRatingLabel";
 import {
@@ -40,6 +41,7 @@ import GetManyManagerCompanyComboBox from "@/components/feature/search-bar/GetMa
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -391,6 +393,22 @@ const handleUpdateRatingReasonSubmit = async (data: {
 //#region 生命週期
 onMounted(() => {
   getContacterList();
+});
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    const titleMap: Record<ContacterTabEnum, string> = {
+      [ContacterTabEnum.Contacter]: "窗口",
+      [ContacterTabEnum.RatingReason]: "開發評等原因",
+    };
+    setModuleTitle(titleMap[tab] ?? "窗口");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 //#endregion
 

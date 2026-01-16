@@ -288,6 +288,10 @@ export interface MbsCrmPplCtlGetEmployeePipelineRspBillItemMdl {
   b: number;
   /** 發票日期 */
   c: string;
+  /** 發票種類：先開發票/後執行 */
+  h?: boolean;
+  /** 預計執行日 */
+  i?: string | null;
   /** 發票號碼 */
   d: string;
   /** 未稅發票金額 */
@@ -368,6 +372,10 @@ export interface MbsCrmPplCtlAddEmployeePipelineReqBillItemMdl {
   a: number;
   /** 商機發票紀錄-發票日期 */
   b: string;
+  /** 商機發票紀錄-發票種類：先開發票/後執行 */
+  f: boolean;
+  /** 商機發票紀錄-預計執行日 */
+  g: string | null;
   /** 商機發票紀錄-未稅發票金額 */
   c: number;
   /** 商機發票紀錄-備註 */
@@ -1095,6 +1103,10 @@ export interface MbsCrmPplCtlUpdateManyEmployeePipelineBillReqItemMdl {
   a: number;
   /** 發票日期 */
   b: string;
+  /** 發票種類：先開發票/後執行 */
+  e: boolean;
+  /** 預計執行日 */
+  f: string | null;
   /** 未稅發票金額 */
   c: number;
   /** 備註 */

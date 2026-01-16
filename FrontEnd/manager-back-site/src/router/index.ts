@@ -238,7 +238,7 @@ const routes: Array<RouteRecordRaw> = [
         children: [
           {
             path: "handoff",
-            meta: { title: "電銷開發" },
+            meta: { title: "電銷轉派" },
             component: () =>
               import("@/views/crm/pipeline/handoff/CrmPipelineHandoffList.vue"),
           },

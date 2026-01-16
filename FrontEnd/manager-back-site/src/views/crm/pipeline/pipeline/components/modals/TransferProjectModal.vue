@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { reactive, watch, ref } from "vue";
+import { reactive, watch, ref, computed } from "vue";
 import { DbEmployeeProjectMemberRoleEnum } from "@/constants/DbEmployeeProjectMemberRoleEnum";
-import GetManyManagerRegionComboBox from "@/components/feature/search-bar/GetManyManagerRegionComboBox.vue";
-import GetManyManagerDepartmentComboBox from "@/components/feature/search-bar/GetManyManagerDepartmentComboBox.vue";
-import GetManyEmployeeComboBox from "@/components/feature/search-bar/GetManyEmployeeComboBox.vue";
-import { getEmployeeProjectMemberRoleLabel } from "@/utils/getEmployeeProjectMemberRoleLabel";
+import { orgMemberDirectory } from "@/constants/orgMemberDirectory";
 
 /** 專案成員項目模型 */
 interface ProjectMemberItem {
@@ -28,19 +25,13 @@ interface TransferProjectFormData {
   employeeProjectMemberEmployeeList: ProjectMemberItem[];
 }
 
-/** 新增成員表單 */
-interface AddMemberForm {
-  employeeID: number | null;
-  employeeProjectMemberRole: DbEmployeeProjectMemberRoleEnum | null;
-  managerRegionID: number | null;
-  managerRegionName: string | null;
-  managerDepartmentID: number | null;
-  managerDepartmentName: string | null;
-  employeeName: string | null;
-}
-
 interface Props {
   show: boolean;
+  companyRegionLabel: string | null;
+  companyName: string | null;
+  projectTypeLabel: string | null;
+  serviceItemLabel: string | null;
+  productLabel: string | null;
   /** 承辦業務員工 ID */
   salerEmployeeID: number | null;
   /** 承辦業務員工名稱 */
@@ -70,9 +61,6 @@ interface ValidationState {
   employeeProjectStartTime: boolean;
   employeeProjectEndTime: boolean;
   employeeProjectMemberID: boolean;
-  employeeProjectMemberRole: boolean;
-  // 專案成員角色至少各一
-  projectMemberRoleComplete: boolean;
 }
 
 /** 驗證狀態物件 */
@@ -82,8 +70,6 @@ const validationState = reactive<ValidationState>({
   employeeProjectStartTime: true,
   employeeProjectEndTime: true,
   employeeProjectMemberID: true,
-  employeeProjectMemberRole: true,
-  projectMemberRoleComplete: true,
 });
 
 /** 表單資料 */
@@ -97,18 +83,51 @@ const formData = reactive<TransferProjectFormData>({
   employeeProjectMemberEmployeeList: [],
 });
 
-/** 是否顯示新增成員彈跳視窗 */
-const isShowAddMemberModal = ref(false);
+const transferStep = ref<1 | 2>(1);
+const isProjectCodeManual = ref(false);
+const isProjectNameManual = ref(false);
+const contractFiles = ref<File[]>([]);
 
-/** 新增成員表單資料 */
-const addMemberForm = reactive<AddMemberForm>({
-  employeeID: null,
-  employeeProjectMemberRole: null,
-  managerRegionID: null,
-  managerRegionName: null,
-  managerDepartmentID: null,
-  managerDepartmentName: null,
-  employeeName: null,
+const regionCodeMap: Record<string, string> = {
+  北區: "A",
+  中區: "B",
+  南區: "C",
+  跨區: "X",
+};
+
+const getProjectSequenceKey = (regionCode: string, date: Date) => {
+  const year = date.getFullYear() - 1911;
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `cache.work.project.seq.${regionCode}.${year}${month}`;
+};
+
+const getNextProjectSequence = (regionCode: string, date: Date) => {
+  const key = getProjectSequenceKey(regionCode, date);
+  const raw = localStorage.getItem(key);
+  const lastSeq = raw ? Number(raw) : 0;
+  const nextSeq = Math.min(lastSeq + 1, 999);
+  return String(nextSeq).padStart(3, "0");
+};
+
+const autoProjectCode = computed(() => {
+  const regionCode = regionCodeMap[props.companyRegionLabel || ""] || "A";
+  const startDate = formData.employeeProjectStartTime
+    ? new Date(formData.employeeProjectStartTime)
+    : new Date();
+  const rocYear = String(startDate.getFullYear() - 1911).padStart(3, "0");
+  const month = String(startDate.getMonth() + 1).padStart(2, "0");
+  const day = String(startDate.getDate()).padStart(2, "0");
+  const sequence = getNextProjectSequence(regionCode, startDate);
+  return `P${regionCode}${rocYear}${month}${day}${sequence}`;
+});
+
+const autoProjectName = computed(() => {
+  const typePrefix = props.projectTypeLabel === "混合案" ? "H" : "S";
+  const sequence = autoProjectCode.value ? autoProjectCode.value.slice(-3) : "000";
+  const serviceName = props.serviceItemLabel || "";
+  const productName = props.productLabel || "";
+  if (!serviceName || !productName) return "";
+  return `${typePrefix}${sequence}-${serviceName}-${productName}`;
 });
 
 /** 重置表單 */
@@ -120,58 +139,10 @@ const resetForm = () => {
   formData.employeeProjectContractUrl = "";
   formData.employeeProjectWorkUrl = "";
   formData.employeeProjectMemberEmployeeList = [];
-};
-
-/** 重置新增成員表單 */
-const resetAddMemberForm = () => {
-  addMemberForm.employeeID = null;
-  addMemberForm.employeeProjectMemberRole = null;
-  addMemberForm.managerRegionID = null;
-  addMemberForm.managerRegionName = null;
-  addMemberForm.managerDepartmentID = null;
-  addMemberForm.managerDepartmentName = null;
-  addMemberForm.employeeName = null;
-};
-
-/** 是否已提交新增成員表單 */
-const isAddMemberSubmitted = ref(false);
-
-/** 點擊附加人員按鈕 */
-const clickAddMemberBtn = () => {
-  resetAddMemberForm();
-  // 清除驗證狀態
-  isAddMemberSubmitted.value = false;
-  isShowAddMemberModal.value = true;
-};
-
-/** 確認新增成員 */
-const confirmAddMember = () => {
-  // 標記為已提交
-  isAddMemberSubmitted.value = true;
-
-  // 驗證必填欄位
-  if (!addMemberForm.employeeID || !addMemberForm.employeeProjectMemberRole) {
-    return;
-  }
-
-  // 新增到成員列表
-  formData.employeeProjectMemberEmployeeList.push({
-    employeeID: addMemberForm.employeeID,
-    employeeProjectMemberRole: addMemberForm.employeeProjectMemberRole,
-    managerRegionID: addMemberForm.managerRegionID,
-    managerRegionName: addMemberForm.managerRegionName,
-    managerDepartmentID: addMemberForm.managerDepartmentID,
-    managerDepartmentName: addMemberForm.managerDepartmentName,
-    employeeName: addMemberForm.employeeName,
-  });
-
-  // 關閉彈跳視窗
-  isShowAddMemberModal.value = false;
-};
-
-/** 取消新增成員 */
-const cancelAddMember = () => {
-  isShowAddMemberModal.value = false;
+  transferStep.value = 1;
+  isProjectCodeManual.value = false;
+  isProjectNameManual.value = false;
+  contractFiles.value = [];
 };
 
 /** 移除專案成員 */
@@ -179,22 +150,66 @@ const removeProjectMember = (index: number) => {
   formData.employeeProjectMemberEmployeeList.splice(index, 1);
 };
 
-/** 必須包含的專案成員角色 */
-const requiredRoles = [
-  DbEmployeeProjectMemberRoleEnum.Saler,
-  DbEmployeeProjectMemberRoleEnum.ProjectManager,
-  DbEmployeeProjectMemberRoleEnum.DepartmentLeader,
-  DbEmployeeProjectMemberRoleEnum.Executor,
-  DbEmployeeProjectMemberRoleEnum.Assistant,
-];
+const regionOptions = ["北區", "中區", "南區", "跨區"];
 
-/** 檢查專案成員角色是否齊全 */
-const isProjectMemberRoleComplete = (): boolean => {
-  return requiredRoles.every((role) =>
-    formData.employeeProjectMemberEmployeeList.some(
-      (member) => member.employeeProjectMemberRole === role
-    )
+const getDepartmentOptions = (regionName: string | null) => {
+  const regionFiltered = orgMemberDirectory.filter((member) =>
+    regionName && regionName !== "跨區" ? member.regionName === regionName : true
   );
+  const serviceKeyword = props.serviceItemLabel || "";
+  let filtered = regionFiltered;
+  if (serviceKeyword.includes("顧問")) {
+    filtered = regionFiltered.filter((member) => member.departmentName.includes("顧問"));
+  } else if (serviceKeyword.includes("工程")) {
+    filtered = regionFiltered.filter((member) => member.departmentName.includes("工程"));
+  }
+  const departments = filtered.map((member) => member.departmentName);
+  return Array.from(new Set(departments));
+};
+
+const getEmployeeOptions = (regionName: string | null, departmentName: string | null) => {
+  const filtered = orgMemberDirectory.filter((member) => {
+    const regionMatch = regionName && regionName !== "跨區" ? member.regionName === regionName : true;
+    const departmentMatch = departmentName ? member.departmentName === departmentName : true;
+    return regionMatch && departmentMatch;
+  });
+  return filtered;
+};
+
+const addProjectMemberRow = () => {
+  const region = props.companyRegionLabel || "北區";
+  const departments = getDepartmentOptions(region);
+  formData.employeeProjectMemberEmployeeList.push({
+    employeeID: null,
+    employeeProjectMemberRole: null,
+    managerRegionID: null,
+    managerRegionName: region,
+    managerDepartmentID: null,
+    managerDepartmentName: departments[0] || null,
+    employeeName: null,
+  });
+};
+
+const handleRegionChange = (index: number) => {
+  const item = formData.employeeProjectMemberEmployeeList[index];
+  const departments = getDepartmentOptions(item.managerRegionName);
+  item.managerDepartmentName = departments[0] || null;
+  item.employeeName = null;
+  item.employeeID = null;
+};
+
+const handleDepartmentChange = (index: number) => {
+  const item = formData.employeeProjectMemberEmployeeList[index];
+  item.employeeName = null;
+  item.employeeID = null;
+};
+
+const handleEmployeeChange = (index: number) => {
+  const item = formData.employeeProjectMemberEmployeeList[index];
+  const match = getEmployeeOptions(item.managerRegionName, item.managerDepartmentName).find(
+    (member) => member.name === item.employeeName
+  );
+  item.employeeID = match ? orgMemberDirectory.indexOf(match) + 1 : null;
 };
 
 /** 確認送出 */
@@ -205,8 +220,6 @@ const handleConfirm = () => {
   validationState.employeeProjectStartTime = true;
   validationState.employeeProjectEndTime = true;
   validationState.employeeProjectMemberID = true;
-  validationState.employeeProjectMemberRole = true;
-  validationState.projectMemberRoleComplete = true;
 
   let isValid = true;
 
@@ -231,12 +244,15 @@ const handleConfirm = () => {
     isValid = false;
   }
 
-  // 驗證專案成員是否至少各一
-  if (!isProjectMemberRoleComplete()) {
-    validationState.projectMemberRoleComplete = false;
+  // 驗證專案成員至少一位且資料完整
+  if (
+    formData.employeeProjectMemberEmployeeList.length === 0 ||
+    formData.employeeProjectMemberEmployeeList.some(
+      (member) => !member.employeeName || !member.managerRegionName || !member.managerDepartmentName
+    )
+  ) {
+    validationState.employeeProjectMemberID = false;
     isValid = false;
-  } else {
-    validationState.projectMemberRoleComplete = true;
   }
 
   // 如果驗證失敗，不執行送出
@@ -255,30 +271,61 @@ const handleCancel = () => {
   validationState.employeeProjectStartTime = true;
   validationState.employeeProjectEndTime = true;
   validationState.employeeProjectMemberID = true;
-  validationState.employeeProjectMemberRole = true;
-  validationState.projectMemberRoleComplete = true;
   emit("cancel");
 };
 
-/** 監聽 show 變化，重置表單並預設添加承辦業務 */
+const handleContractFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  if (!target?.files) {
+    contractFiles.value = [];
+    return;
+  }
+  contractFiles.value = Array.from(target.files);
+};
+
+const goToMemberStep = () => {
+  transferStep.value = 2;
+  if (formData.employeeProjectMemberEmployeeList.length === 0) {
+    addProjectMemberRow();
+  }
+};
+
+const goToBasicStep = () => {
+  transferStep.value = 1;
+};
+
+/** 監聽 show 變化，重置表單 */
 watch(
   () => props.show,
   (newShow) => {
     if (newShow) {
       resetForm();
 
-      // 預設添加承辦業務為專案成員
-      if (props.salerEmployeeID && props.salerEmployeeName) {
-        formData.employeeProjectMemberEmployeeList.push({
-          employeeID: props.salerEmployeeID,
-          employeeProjectMemberRole: DbEmployeeProjectMemberRoleEnum.Saler,
-          managerRegionID: props.salerRegionID,
-          managerRegionName: props.salerRegionName,
-          managerDepartmentID: props.salerDepartmentID,
-          managerDepartmentName: props.salerDepartmentName,
-          employeeName: props.salerEmployeeName,
-        });
+      if (autoProjectCode.value) {
+        formData.employeeProjectCode = autoProjectCode.value;
       }
+      if (autoProjectName.value) {
+        formData.employeeProjectName = autoProjectName.value;
+      }
+      addProjectMemberRow();
+    }
+  }
+);
+
+watch(
+  () => autoProjectCode.value,
+  (value) => {
+    if (!isProjectCodeManual.value && value) {
+      formData.employeeProjectCode = value;
+    }
+  }
+);
+
+watch(
+  () => autoProjectName.value,
+  (value) => {
+    if (!isProjectNameManual.value && value) {
+      formData.employeeProjectName = value;
     }
   }
 );
@@ -305,264 +352,229 @@ watch(
 
       <!-- 內容區域 -->
       <div class="p-8 overflow-y-auto flex-1">
-        <div class="space-y-4">
-          <!-- 基本資訊 -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- 專案狀態 -->
-            <div>
-              <label class="form-label">專案狀態 <span class="required-label">*</span></label>
-              <input :value="'未開始'" type="text" class="input-box" disabled />
-            </div>
-
-            <!-- 專案代碼 -->
-            <div>
-              <label class="form-label">專案代碼 <span class="required-label">*</span></label>
-              <input
-                v-model="formData.employeeProjectCode"
-                type="text"
-                class="input-box"
-                placeholder="請輸入專案代碼"
-              />
-              <div class="error-wrapper">
-                <span v-if="!validationState.employeeProjectCode" class="error-tip">
-                  專案代碼為必填
-                </span>
+        <div v-if="transferStep === 1" class="space-y-4">
+          <div class="rounded-lg border border-gray-200 p-4">
+            <h3 class="subtitle text-gray-700">基本資訊</h3>
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+              <div>客戶所在地：{{ props.companyRegionLabel || "-" }}</div>
+              <div>
+                <label class="form-label">專案代碼 <span class="required-label">*</span></label>
+                <input
+                  v-model="formData.employeeProjectCode"
+                  type="text"
+                  class="input-box"
+                  placeholder="請輸入專案代碼"
+                  @input="isProjectCodeManual = true"
+                />
+                <div class="error-wrapper">
+                  <span v-if="!validationState.employeeProjectCode" class="error-tip">
+                    專案代碼為必填
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label class="form-label">專案名稱 <span class="required-label">*</span></label>
+                <input
+                  v-model="formData.employeeProjectName"
+                  type="text"
+                  class="input-box"
+                  placeholder="請輸入專案名稱"
+                  @input="isProjectNameManual = true"
+                />
+                <div class="error-wrapper">
+                  <span v-if="!validationState.employeeProjectName" class="error-tip">
+                    專案名稱為必填
+                  </span>
+                </div>
+              </div>
+              <div>客戶：{{ props.companyName || "-" }}</div>
+              <div>
+                <label class="form-label">開始日期 <span class="required-label">*</span></label>
+                <input v-model="formData.employeeProjectStartTime" type="date" class="input-box" />
+                <div class="error-wrapper">
+                  <span v-if="!validationState.employeeProjectStartTime" class="error-tip">
+                    專案開始日期為必填
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label class="form-label">結束日期 <span class="required-label">*</span></label>
+                <input v-model="formData.employeeProjectEndTime" type="date" class="input-box" />
+                <div class="error-wrapper">
+                  <span v-if="!validationState.employeeProjectEndTime" class="error-tip">
+                    專案結束日期為必填
+                  </span>
+                </div>
               </div>
             </div>
-
-            <!-- 專案名稱 -->
-            <div>
-              <label class="form-label">專案名稱 <span class="required-label">*</span></label>
-              <input
-                v-model="formData.employeeProjectName"
-                type="text"
-                class="input-box"
-                placeholder="請輸入專案名稱"
-              />
-              <div class="error-wrapper">
-                <span v-if="!validationState.employeeProjectName" class="error-tip">
-                  專案名稱為必填
-                </span>
+            <div class="mt-3">
+              <label class="form-label">上傳合約</label>
+              <div class="mt-2 flex flex-col gap-2">
+                <label class="btn-update cursor-pointer text-xs" title="支援多檔上傳">
+                  上傳合約
+                  <input type="file" class="hidden" multiple @change="handleContractFileChange" />
+                </label>
+                <div v-if="contractFiles.length > 0" class="flex flex-wrap gap-2">
+                  <span
+                    v-for="file in contractFiles"
+                    :key="file.name"
+                    class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                  >
+                    {{ file.name }}
+                  </span>
+                </div>
+                <div v-else class="text-xs text-gray-500">尚未選擇檔案</div>
               </div>
             </div>
           </div>
 
-          <!-- 時間資訊 -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="form-label">開始日期 <span class="required-label">*</span></label>
-              <input v-model="formData.employeeProjectStartTime" type="date" class="input-box" />
-              <div class="error-wrapper">
-                <span v-if="!validationState.employeeProjectStartTime" class="error-tip">
-                  專案開始日期為必填
-                </span>
+          <div class="rounded-lg border border-gray-200 p-4">
+            <h3 class="subtitle text-gray-700">類型與服務</h3>
+            <div class="mt-3 text-sm text-gray-700">
+              <div>專案類型：{{ props.projectTypeLabel || "-" }}</div>
+              <div class="mt-2">服務項目：{{ props.serviceItemLabel || "-" }}</div>
+              <div class="mt-2">產品：{{ props.productLabel || "-" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="flex flex-col bg-white rounded-lg p-8 gap-4">
+          <div class="flex items-center justify-between">
+            <h2 class="subtitle mt-2">專案人員</h2>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            系統會依區域與服務類型帶入預設人員，仍可自行調整。
+          </p>
+          <div class="space-y-6">
+            <div class="rounded-lg border border-gray-200 bg-white p-4">
+              <div class="flex items-center justify-between">
+                <h3 class="subtitle text-gray-700">{{ props.serviceItemLabel || "服務項目" }}</h3>
               </div>
+              <table class="table-base table-fixed table-sticky w-full mt-3">
+                <thead class="bg-gray-800 text-white">
+                  <tr>
+                    <th class="text-start">所屬區域</th>
+                    <th class="text-start">所屬部門</th>
+                    <th class="text-start">專案人員</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="formData.employeeProjectMemberEmployeeList.length === 0">
+                    <td colspan="3" class="text-center text-gray-400 py-4">尚未新增人員</td>
+                  </tr>
+                  <tr
+                    v-for="(item, index) in formData.employeeProjectMemberEmployeeList"
+                    :key="index"
+                  >
+                    <td class="text-start">
+                      <div class="combo-custom">
+                        <div class="relative flex w-full">
+                          <select
+                            v-model="item.managerRegionName"
+                            class="input-box select-reset"
+                            @change="handleRegionChange(index)"
+                          >
+                            <option v-for="region in regionOptions" :key="region" :value="region">
+                              {{ region }}
+                            </option>
+                          </select>
+                          <span class="select-icon">
+                            <svg class="w-4 h-4" viewBox="0 0 20 25" fill="none">
+                              <path
+                                d="M10.3085 16.4954L15.6668 9.58917C16.001 9.15687 15.7985 8.33398 15.3585 8.33398H4.64182C4.20182 8.33398 3.99932 9.15687 4.33349 9.58917L9.69182 16.4954C9.86932 16.7246 10.131 16.7246 10.3085 16.4954Z"
+                                fill="#787676"
+                              />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-start">
+                      <div class="combo-custom">
+                        <div class="relative flex w-full">
+                          <select
+                            v-model="item.managerDepartmentName"
+                            class="input-box select-reset"
+                            @change="handleDepartmentChange(index)"
+                          >
+                            <option
+                              v-for="department in getDepartmentOptions(item.managerRegionName)"
+                              :key="department"
+                              :value="department"
+                            >
+                              {{ department }}
+                            </option>
+                          </select>
+                          <span class="select-icon">
+                            <svg class="w-4 h-4" viewBox="0 0 20 25" fill="none">
+                              <path
+                                d="M10.3085 16.4954L15.6668 9.58917C16.001 9.15687 15.7985 8.33398 15.3585 8.33398H4.64182C4.20182 8.33398 3.99932 9.15687 4.33349 9.58917L9.69182 16.4954C9.86932 16.7246 10.131 16.7246 10.3085 16.4954Z"
+                                fill="#787676"
+                              />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-start">
+                      <div class="combo-custom">
+                        <div class="relative flex w-full">
+                          <select
+                            v-model="item.employeeName"
+                            class="input-box select-reset"
+                            @change="handleEmployeeChange(index)"
+                          >
+                            <option value="">請選擇人員</option>
+                            <option
+                              v-for="employee in getEmployeeOptions(
+                                item.managerRegionName,
+                                item.managerDepartmentName
+                              )"
+                              :key="employee.email"
+                              :value="employee.name"
+                            >
+                              {{ employee.name }}
+                            </option>
+                          </select>
+                          <span class="select-icon">
+                            <svg class="w-4 h-4" viewBox="0 0 20 25" fill="none">
+                              <path
+                                d="M10.3085 16.4954L15.6668 9.58917C16.001 9.15687 15.7985 8.33398 15.3585 8.33398H4.64182C4.20182 8.33398 3.99932 9.15687 4.33349 9.58917L9.69182 16.4954C9.86932 16.7246 10.131 16.7246 10.3085 16.4954Z"
+                                fill="#787676"
+                              />
+                            </svg>
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <button
+                type="button"
+                class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30] mt-3"
+                style="background-color: #F2F6F9; border-color: #082F49;"
+                @click="addProjectMemberRow"
+              >
+                新增專案人員
+              </button>
             </div>
-
-            <div>
-              <label class="form-label">結束日期 <span class="required-label">*</span></label>
-              <input v-model="formData.employeeProjectEndTime" type="date" class="input-box" />
-              <div class="error-wrapper">
-                <span v-if="!validationState.employeeProjectEndTime" class="error-tip">
-                  專案結束日期為必填
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 網址資訊 -->
-          <div>
-            <label class="form-label">契約網址</label>
-            <input
-              v-model="formData.employeeProjectContractUrl"
-              type="url"
-              class="input-box"
-              placeholder="請輸入契約網址"
-            />
-            <div class="error-wrapper"></div>
-          </div>
-
-          <div>
-            <label class="form-label">工作企劃書網址</label>
-            <input
-              v-model="formData.employeeProjectWorkUrl"
-              type="url"
-              class="input-box"
-              placeholder="請輸入工作企劃書網址"
-            />
-            <div class="error-wrapper"></div>
-          </div>
-
-          <!-- 專案成員表格 -->
-          <div class="space-y-2">
-            <div class="flex justify-between items-center">
-              <label class="form-label">專案成員</label>
-              <button class="btn-add" @click="clickAddMemberBtn">附加人員</button>
-            </div>
-
-            <span v-if="!validationState.projectMemberRoleComplete" class="error-tip">
-              請確保每一個角色至少有一位人員
-            </span>
-
-            <!-- 成員列表表格 -->
-            <table class="table-base table-fixed w-full">
-              <thead class="bg-gray-800 text-white">
-                <tr>
-                  <th class="text-start">層級角色</th>
-                  <th class="text-start">地區</th>
-                  <th class="text-start">部門</th>
-                  <th class="text-start">人員</th>
-                  <th class="text-center w-24">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- 總經理固定列 -->
-                <tr class="bg-gray-50">
-                  <td class="text-start">總經理</td>
-                  <td class="text-start">全區</td>
-                  <td class="text-start">總經理室</td>
-                  <td class="text-start">陳建良</td>
-                  <td class="text-center">
-                    <button class="btn-delete text-sm px-3 py-1" disabled>刪除</button>
-                  </td>
-                </tr>
-
-                <tr
-                  v-for="(item, index) in formData.employeeProjectMemberEmployeeList"
-                  :key="index"
-                >
-                  <td class="text-start">
-                    {{ getEmployeeProjectMemberRoleLabel(item.employeeProjectMemberRole) }}
-                  </td>
-                  <td class="text-start">{{ item.managerRegionName || "-" }}</td>
-                  <td class="text-start">{{ item.managerDepartmentName || "-" }}</td>
-                  <td class="text-start">{{ item.employeeName || "-" }}</td>
-                  <td class="text-center">
-                    <button
-                      class="btn-delete text-sm px-3 py-1"
-                      @click="removeProjectMember(index)"
-                    >
-                      刪除
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
 
       <!-- 按鈕區域 - 固定在底部 -->
       <div class="p-6 pt-4 border-t border-gray-300">
-        <div class="flex justify-end gap-2">
+        <div v-if="transferStep === 1" class="flex justify-end gap-2">
           <button class="btn-cancel" @click="handleCancel">取消</button>
-          <button class="btn-submit" @click="handleConfirm">送出</button>
+          <button class="btn-submit" @click="goToMemberStep">確認</button>
+        </div>
+        <div v-else class="flex justify-center gap-2">
+          <button class="btn-cancel" @click="goToBasicStep">上一步</button>
+          <button class="btn-submit" @click="handleConfirm">確認建立專案</button>
         </div>
       </div>
     </div>
 
-    <!-- 附加人員彈跳視窗 -->
-    <div v-if="isShowAddMemberModal" class="modal-overlay" style="z-index: 1001">
-      <div class="w-[520px] bg-white rounded-lg shadow-lg">
-        <!-- 標題列 -->
-        <div class="flex items-center justify-between p-3">
-          <h2 class="modal-title">附加人員</h2>
-          <button
-            class="rounded hover:bg-gray-200 text-gray-500 transition-colors text-lg font-bold px-2"
-            aria-label="關閉"
-            @click="cancelAddMember"
-          >
-            x
-          </button>
-        </div>
-
-        <hr />
-
-        <!-- 內容區 -->
-        <div class="p-6 space-y-4">
-          <div class="flex gap-4 w-full">
-            <!-- 地區 -->
-            <div class="flex flex-col gap-2 flex-1">
-              <label class="form-label">地區</label>
-              <GetManyManagerRegionComboBox
-                v-model:manager-region-i-d="addMemberForm.managerRegionID"
-                v-model:manager-region-name="addMemberForm.managerRegionName"
-                :disabled="false"
-                placeholder="請選擇地區"
-              />
-            </div>
-
-            <!-- 部門 -->
-            <div class="flex flex-col gap-2 flex-1">
-              <label class="form-label">部門</label>
-              <GetManyManagerDepartmentComboBox
-                v-model:manager-department-i-d="addMemberForm.managerDepartmentID"
-                v-model:manager-department-name="addMemberForm.managerDepartmentName"
-                :disabled="false"
-                placeholder="請選擇部門"
-              />
-            </div>
-          </div>
-
-          <!-- 角色 -->
-          <div>
-            <label class="form-label">層級角色 <span class="required-label">*</span></label>
-            <select v-model="addMemberForm.employeeProjectMemberRole" class="select-box">
-              <option :value="null">請選擇</option>
-
-              <option :value="DbEmployeeProjectMemberRoleEnum.ProjectManager">
-                專案經理（完整權限：檢視 / 新增 / 編輯 / 刪除）
-              </option>
-              <option :value="DbEmployeeProjectMemberRoleEnum.DepartmentLeader">
-                部門主管（完整權限：檢視 / 新增 / 編輯 / 刪除）
-              </option>
-              <option :value="DbEmployeeProjectMemberRoleEnum.Executor">
-                執行者（檢視 + 工項編輯）
-              </option>
-              <option :value="DbEmployeeProjectMemberRoleEnum.Assistant">
-                助理（檢視 + 工項編輯）
-              </option>
-              <option :value="DbEmployeeProjectMemberRoleEnum.Saler">業務（僅檢視）</option>
-            </select>
-            <div class="error-wrapper">
-              <span
-                v-if="isAddMemberSubmitted && !addMemberForm.employeeProjectMemberRole"
-                class="error-tip"
-              >
-                不可為空
-              </span>
-            </div>
-          </div>
-
-          <!-- 人員 -->
-          <div>
-            <label class="form-label">人員 <span class="required-label">*</span></label>
-            <GetManyEmployeeComboBox
-              v-model:manager-employee-i-d="addMemberForm.employeeID"
-              v-model:manager-employee-name="addMemberForm.employeeName"
-              v-model:manager-region-i-d="addMemberForm.managerRegionID"
-              v-model:manager-department-i-d="addMemberForm.managerDepartmentID"
-              v-model:manager-region-name="addMemberForm.managerRegionName"
-              v-model:manager-department-name="addMemberForm.managerDepartmentName"
-              :disabled="false"
-              placeholder="請選擇人員"
-            />
-            <div class="error-wrapper">
-              <span v-if="isAddMemberSubmitted && !addMemberForm.employeeID" class="error-tip">
-                不可為空
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 底部按鈕 -->
-        <div class="p-6 pt-4 border-t border-gray-300">
-          <div class="flex justify-end gap-2">
-            <button class="btn-cancel" @click="cancelAddMember">取消</button>
-            <button class="btn-submit" @click="confirmAddMember">送出</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>

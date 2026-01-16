@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import SystemContacterList from "@/views/system/contacter/SystemContacterList.vue";
 import SystemCompanyList from "@/views/system/company/SystemCompanyList.vue";
 import SystemProductList from "@/views/system/product/SystemProductList.vue";
@@ -7,6 +7,7 @@ import SystemEmployeeList from "@/views/system/employee/SystemEmployeeList.vue";
 import SystemRoleList from "@/views/system/role/SystemRoleList.vue";
 import SystemDepartmentList from "@/views/system/department/SystemDepartmentList.vue";
 import SystemRegionList from "@/views/system/region/SystemRegionList.vue";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 
 const tabs = [
   { key: "contacter", label: "窗口", component: SystemContacterList },
@@ -20,6 +21,19 @@ const tabs = [
 
 const activeTabKey = ref(tabs[0].key);
 const activeTab = computed(() => tabs.find((tab) => tab.key === activeTabKey.value) ?? tabs[0]);
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab.label);
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
+});
 </script>
 
 <template>

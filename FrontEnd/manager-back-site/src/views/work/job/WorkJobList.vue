@@ -1,6 +1,7 @@
 <script setup lang="ts">
 //#region 引入
-import { ref, reactive, onMounted, defineAsyncComponent } from "vue";
+import { ref, reactive, onMounted, defineAsyncComponent, watch, onBeforeUnmount } from "vue";
+import { useRoute } from "vue-router";
 import VueDatePicker from "@vuepic/vue-datepicker";
 // Enums / 常數
 import { DbAtomMenuEnum } from "@/constants/DbAtomMenuEnum";
@@ -39,6 +40,7 @@ import {
 } from "@/utils/timeFormatter";
 import { getEmployeeProjectStatusLabel } from "@/utils/getEmployeeProjectStatusLabel";
 import { mockDataSets } from "@/services/mockApi/mockDataSets";
+import { useModuleTitleStore } from "@/stores/moduleTitleStore";
 // Components
 import GetManyEmployeeProjectComboBox from "@/components/feature/search-bar/GetManyEmployeeProjectComboBox.vue";
 import GetManyEmployeeProjectStoneComboBox from "@/components/feature/search-bar/GetManyEmployeeProjectStoneComboBox.vue";
@@ -71,6 +73,8 @@ import router from "@/router";
 //#region 外部依賴
 /** 員工資訊儲存 */
 const employeeInfoStore = useEmployeeInfoStore();
+const route = useRoute();
+const { setModuleTitle, clearModuleTitle } = useModuleTitleStore();
 /** 令牌儲存 */
 const tokenStore = useTokenStore();
 /** token驗證相關 */
@@ -235,8 +239,24 @@ const workRecordListViewObj = reactive<WorkRecordListViewMdl>({
 //#region UI行為 / 畫面處理
 /** 切換tab */
 const changeTab = (tab: TabEnum) => {
-  activeTab.value = tab;
-  if (tab === TabEnum.WorkJob) {
+  const tabQuery = tab === TabEnum.WorkRecord ? "record" : "job";
+  if (route.query.tab === tabQuery) {
+    activeTab.value = tab;
+  } else {
+    router.replace({ query: { ...route.query, tab: tabQuery } });
+  }
+};
+
+const normalizeTab = (value: unknown) => (value === "record" ? TabEnum.WorkRecord : TabEnum.WorkJob);
+
+const syncTabFromRoute = () => {
+  const nextTab = normalizeTab(route.query.tab);
+  activeTab.value = nextTab;
+  const tabQuery = nextTab === TabEnum.WorkRecord ? "record" : "job";
+  if (route.query.tab !== tabQuery) {
+    router.replace({ query: { ...route.query, tab: tabQuery } });
+  }
+  if (nextTab === TabEnum.WorkJob) {
     getWorkJobList();
   } else {
     getWorkRecordList();
@@ -647,7 +667,26 @@ const clickWorkJobDetailBtn = (stoneJobID: number) => {
 
 //#region 生命週期
 onMounted(() => {
-  getWorkJobList();
+  syncTabFromRoute();
+});
+
+watch(
+  () => route.query.tab,
+  () => {
+    syncTabFromRoute();
+  }
+);
+
+watch(
+  () => activeTab.value,
+  (tab) => {
+    setModuleTitle(tab === TabEnum.WorkRecord ? "工作記錄" : "工項");
+  },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  clearModuleTitle();
 });
 //#endregion
 </script>

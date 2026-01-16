@@ -17,6 +17,8 @@ const runtimeNotes = ref<AnnotationNote[]>([]);
 const hiddenSeedIds = ref<string[]>([]);
 const expandedStorageKey = "mock-annotations-expanded";
 const expandedNoteIds = ref<string[]>([]);
+const sizeExpandedStorageKey = "mock-annotations-size-expanded";
+const sizeExpandedNoteIds = ref<string[]>([]);
 
 const isPathMatch = (notePath: string, currentPaths: string[]) => {
   const candidates = currentPaths.filter(Boolean);
@@ -75,6 +77,27 @@ const loadExpandedNotes = () => {
 
 const persistExpandedNotes = () => {
   localStorage.setItem(expandedStorageKey, JSON.stringify(expandedNoteIds.value));
+};
+
+const loadSizeExpandedNotes = () => {
+  const raw = localStorage.getItem(sizeExpandedStorageKey);
+  if (!raw) {
+    sizeExpandedNoteIds.value = [];
+    return;
+  }
+  try {
+    const parsed = JSON.parse(raw) as string[];
+    sizeExpandedNoteIds.value = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    sizeExpandedNoteIds.value = [];
+  }
+};
+
+const persistSizeExpandedNotes = () => {
+  localStorage.setItem(
+    sizeExpandedStorageKey,
+    JSON.stringify(sizeExpandedNoteIds.value)
+  );
 };
 
 const persistLocalNotes = () => {
@@ -227,6 +250,8 @@ const removeNote = (note: AnnotationNote) => {
   persistLocalNotes();
   expandedNoteIds.value = expandedNoteIds.value.filter((id) => id !== note.id);
   persistExpandedNotes();
+  sizeExpandedNoteIds.value = sizeExpandedNoteIds.value.filter((id) => id !== note.id);
+  persistSizeExpandedNotes();
   rebuildRuntimeNotes();
 };
 
@@ -282,6 +307,9 @@ const updateNoteText = (note: AnnotationNote, value: string) => {
 const isNoteExpanded = (note: AnnotationNote) =>
   !note.text?.trim() || expandedNoteIds.value.includes(note.id);
 
+const isNoteSizeExpanded = (note: AnnotationNote) =>
+  sizeExpandedNoteIds.value.includes(note.id);
+
 const collapseNote = (note: AnnotationNote) => {
   if (!note.text?.trim()) return;
   expandedNoteIds.value = expandedNoteIds.value.filter((id) => id !== note.id);
@@ -301,6 +329,15 @@ const expandNote = (note: AnnotationNote) => {
   });
 };
 
+const toggleNoteSize = (note: AnnotationNote) => {
+  if (sizeExpandedNoteIds.value.includes(note.id)) {
+    sizeExpandedNoteIds.value = sizeExpandedNoteIds.value.filter((id) => id !== note.id);
+  } else {
+    sizeExpandedNoteIds.value = [...sizeExpandedNoteIds.value, note.id];
+  }
+  persistSizeExpandedNotes();
+};
+
 const collapseAllExpanded = (event: MouseEvent) => {
   if (isAddMode.value) return;
   const target = event.target as HTMLElement | null;
@@ -318,16 +355,29 @@ const collapseAllExpanded = (event: MouseEvent) => {
   }
 };
 
+let mutationObserver: MutationObserver | null = null;
+
 onMounted(() => {
   loadLocalNotes();
   loadHiddenSeeds();
   loadExpandedNotes();
+  loadSizeExpandedNotes();
   rebuildRuntimeNotes();
   nextTick(() => rebuildRuntimeNotes());
   document.addEventListener("click", handleAddClick, true);
   document.addEventListener("click", collapseAllExpanded);
   window.addEventListener("scroll", scheduleRebuild, true);
   window.addEventListener("resize", scheduleRebuild);
+
+  mutationObserver = new MutationObserver(() => {
+    scheduleRebuild();
+  });
+  mutationObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['data-annotation-scope', 'hidden', 'aria-hidden', 'style'],
+  });
 });
 
 onBeforeUnmount(() => {
@@ -335,6 +385,10 @@ onBeforeUnmount(() => {
   document.removeEventListener("click", collapseAllExpanded);
   window.removeEventListener("scroll", scheduleRebuild, true);
   window.removeEventListener("resize", scheduleRebuild);
+  if (mutationObserver) {
+    mutationObserver.disconnect();
+    mutationObserver = null;
+  }
 });
 
 watch(
@@ -365,13 +419,23 @@ watch(
         <div
           v-if="isNoteExpanded(note)"
           class="annotation-note"
+          :class="{ 'annotation-note--expanded': isNoteSizeExpanded(note) }"
           :style="{ left: `${note.x ?? 24}px`, top: `${note.y ?? 120}px` }"
         >
           <div class="annotation-note__header">
             <span class="annotation-note__title">說明</span>
-            <button class="annotation-note__delete" type="button" @click="removeNote(note)">
-              刪除
-            </button>
+            <div class="annotation-note__actions">
+              <button
+                class="annotation-note__toggle"
+                type="button"
+                @click="toggleNoteSize(note)"
+              >
+                {{ isNoteSizeExpanded(note) ? "收合" : "展開" }}
+              </button>
+              <button class="annotation-note__delete" type="button" @click="removeNote(note)">
+                刪除
+              </button>
+            </div>
           </div>
           <textarea
             class="annotation-note__textarea"
@@ -456,6 +520,11 @@ watch(
   pointer-events: auto;
 }
 
+.annotation-note--expanded {
+  width: 380px;
+  max-width: 90vw;
+}
+
 .annotation-bubble {
   position: fixed;
   width: 38px;
@@ -484,10 +553,25 @@ watch(
   margin-bottom: 6px;
 }
 
+.annotation-note__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .annotation-note__title {
   font-size: 12px;
   font-weight: 600;
   color: #0f172a;
+}
+
+.annotation-note__toggle {
+  border: none;
+  background: transparent;
+  color: #0ea5e9;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
 }
 
 .annotation-note__delete {
@@ -506,6 +590,10 @@ watch(
   border-radius: 8px;
   padding: 6px;
   font-size: 12px;
-  resize: vertical;
+  resize: both;
+}
+
+.annotation-note--expanded .annotation-note__textarea {
+  min-height: 160px;
 }
 </style>

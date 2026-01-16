@@ -187,6 +187,10 @@ interface CrmPipelinePipelineAddBillItemMdl {
   employeePipelineBillPeriodNumber: number;
   /** 發票日期 */
   employeePipelineBillBillTime: string;
+  /** 發票種類：先開發票/後執行 */
+  employeePipelineBillIsPreIssued: boolean;
+  /** 預計執行日 */
+  employeePipelineBillExecuteDate: string | null;
   /** 未稅發票金額 */
   employeePipelineBillNoTaxAmount: number;
   /** 備註 */
@@ -614,6 +618,8 @@ const handleEditMultipleBillsConfirm = (data: {
     employeePipelineBillBillNumber: string | null;
     employeePipelineBillPeriodNumber: number;
     employeePipelineBillBillTime: string;
+    employeePipelineBillIsPreIssued: boolean;
+    employeePipelineBillExecuteDate: string | null;
     employeePipelineBillNoTaxAmount: number;
     employeePipelineBillRemark: string | null;
   }[];
@@ -761,6 +767,10 @@ const submitPipeline = async () => {
         ({
           employeePipelineBillPeriodNumber: item.employeePipelineBillPeriodNumber,
           employeePipelineBillBillTime: formatToServerDatetime(item.employeePipelineBillBillTime),
+          employeePipelineBillIsPreIssued: item.employeePipelineBillIsPreIssued,
+          employeePipelineBillExecuteDate: item.employeePipelineBillExecuteDate
+            ? formatToServerDatetime(item.employeePipelineBillExecuteDate)
+            : null,
           employeePipelineBillNoTaxAmount: item.employeePipelineBillNoTaxAmount,
           employeePipelineBillRemark: item.employeePipelineBillRemark,
           employeePipelineBillStatus: item.employeePipelineBillStatus,
