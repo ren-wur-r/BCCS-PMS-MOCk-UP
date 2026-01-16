@@ -111,10 +111,11 @@ const emit = defineEmits<Emits>();
       </div>
 
       <button
-        v-if="!props.readonly && employeeInfoStore.hasPermission(menu, 'create')"
-        class="mt-[3px] w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        v-if="employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
+        class="mt-[3px] w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30] disabled:opacity-50 disabled:cursor-not-allowed"
         type="button"
         style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        :disabled="props.readonly"
         @click="emit('addDue')"
       >
         新增履約通知

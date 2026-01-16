@@ -267,9 +267,10 @@ const handleDeleteProduct = (productId: number | null, index: number) => {
         </table>
       </div>
       <button
-        v-if="!readonly && employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
-        class="mt-4 w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        v-if="employeeInfoStore.hasPermission(menu, 'create') && isExpanded"
+        class="mt-4 w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30] disabled:opacity-50 disabled:cursor-not-allowed"
         style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        :disabled="readonly"
         @click="handleAddProduct"
       >
         附加產品

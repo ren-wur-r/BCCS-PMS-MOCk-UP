@@ -217,13 +217,10 @@ const getBillStatusClass = (status: DbAtomEmployeePipelineBillStatusEnum): strin
         </table>
       </div>
       <button
-        v-if="
-          props.canEditMultipleBills &&
-          !props.readonly &&
-          employeeInfoStore.hasPermission(menu, 'edit')
-        "
-        class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30]"
+        v-if="employeeInfoStore.hasPermission(menu, 'edit') && isExpanded"
+        class="w-full rounded-lg border border-dashed py-2 text-sm font-medium text-[#082F49] hover:text-[#061F30] disabled:opacity-50 disabled:cursor-not-allowed"
         style="background-color: rgb(242, 246, 249); border-color: rgb(8, 47, 73);"
+        :disabled="props.readonly || !props.canEditMultipleBills"
         @click="emit('edit-multiple-bills')"
       >
         新增發票紀錄
